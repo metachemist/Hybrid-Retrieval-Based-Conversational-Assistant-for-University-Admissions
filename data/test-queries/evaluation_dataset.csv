@@ -1,0 +1,43 @@
+# Evaluation Dataset for Admission Chatbot
+# Format: query,expected_language,expected_topics,notes
+
+# English Queries
+What are the eligibility criteria for undergraduate admission?,en,eligibility,
+When is the last date for form submission?,en,deadline,
+What documents are required for admission?,en,documents,
+How much is the admission fee?,en,fee,
+What is the merit criteria for BS Computer Science?,en,merit,program,
+Can I apply with O-Level qualifications?,en,eligibility,qualifications,
+What is the reservation policy for sports quota?,en,reservation,policy,
+How do I check my admission status?,en,process,
+Is there an entry test for admission?,en,test,
+What are the scholarships available?,en,scholarship,
+
+# Roman Urdu Queries
+admission ke liye kya documents chahiye?,ur,documents,
+form submit karne ki last date kya hai?,ur,deadline,
+admission lene ke liye kya eligibility hai?,ur,eligibility,
+fee kitni hai admission ki?,ur,fee,
+CS program mein merit kya hai?,ur,merit,program,
+kya main O-Level se apply kar sakta hoon?,ur,eligibility,qualifications,
+sports quota mein kya reservation hai?,ur,reservation,policy,
+admission status kaise check karein?,ur,process,
+kya entry test dena zaroori hai?,ur,test,
+scholarships kaise milegi?,ur,scholarship,
+
+# Code-Mixed Queries
+admission ke liye what documents are needed?,mixed,documents,
+last date for form submission kya hai?,mixed,deadline,
+eligibility criteria batao undergraduate ke liye,mixed,eligibility,
+fee structure kya hai for BS programs?,mixed,fee,
+merit list kab aayegi?,mixed,merit,
+kya O-Level se eligible hoon main?,mixed,eligibility,qualifications,
+reservation policy for sports quota explain karo,mixed,reservation,policy,
+how to check admission status online?,mixed,process,
+entry test ka pattern kya hai?,mixed,test,
+scholarships ke liye kaise apply karein?,mixed,scholarship,
+
+# Edge Cases
+kuch nahi,en,general,empty query test
+asdfgh,en,general,gibberish test
+,,,empty test
