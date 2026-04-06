@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     ADMIN_REGISTRATION_KEY: str = "set-a-strong-secret-in-env"
 
+    # Password reset
+    FRONTEND_URL: str = "http://localhost:3000"
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM: Optional[str] = None
+
     # Monitoring
     SENTRY_DSN: Optional[str] = None
     
