@@ -8,9 +8,9 @@ import LanguageChart from '@/components/admin/LanguageChart'
 import TopicChart from '@/components/admin/TopicChart'
 
 const RANGE_OPTIONS = [
-  { label: 'Last 7 days', value: 7 },
-  { label: 'Last 30 days', value: 30 },
-  { label: 'Last 90 days', value: 90 },
+  { label: '7d', value: 7 },
+  { label: '30d', value: 30 },
+  { label: '90d', value: 90 },
 ]
 
 export default function AdminDashboard() {
@@ -50,24 +50,25 @@ export default function AdminDashboard() {
   }, [days])
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Page header */}
+    <div className="p-8 space-y-7 min-h-full">
+
+      {/* ── Page header ─────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Analytics Dashboard</h1>
-          <p className="text-sm text-gray-500">Chatbot usage insights</p>
+          <h1 className="font-serif-display text-2xl text-slate-900">Analytics Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Chatbot usage insights</p>
         </div>
 
-        {/* Date range selector */}
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
+        {/* Date range toggle */}
+        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
           {RANGE_OPTIONS.map(opt => (
             <button
               key={opt.value}
               onClick={() => setDays(opt.value)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 days === opt.value
-                  ? 'bg-primary-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
               }`}
             >
               {opt.label}
@@ -77,73 +78,89 @@ export default function AdminDashboard() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
           {error}
         </div>
       )}
 
+      {/* ── KPI Cards ───────────────────────────────────── */}
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-              <div className="h-3 bg-gray-200 rounded w-24 mb-3" />
-              <div className="h-7 bg-gray-200 rounded w-16" />
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 animate-pulse">
+              <div className="h-2.5 bg-slate-100 rounded-full w-24 mb-4" />
+              <div className="h-8 bg-slate-100 rounded-lg w-20 mb-2" />
+              <div className="h-2 bg-slate-100 rounded-full w-16" />
             </div>
           ))}
         </div>
       ) : (
-        <>
-          {/* KPI cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard
-              label="Total Queries"
-              value={overview?.total_queries?.toLocaleString() ?? '—'}
-              sub={`Last ${days} days`}
-            />
-            <KpiCard
-              label="Avg Response Time"
-              value={overview ? `${Math.round(overview.avg_latency_ms)} ms` : '—'}
-              sub="End-to-end latency"
-            />
-            <KpiCard
-              label="Cache Hit Rate"
-              value={overview ? `${overview.cache_hit_rate_pct.toFixed(1)}%` : '—'}
-              sub="Responses from cache"
-            />
-            <KpiCard
-              label="Query Success Rate"
-              value={overview ? `${overview.success_rate_pct.toFixed(1)}%` : '—'}
-              sub="Answered from documents"
-            />
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            label="Total Queries"
+            value={overview?.total_queries?.toLocaleString() ?? '—'}
+            sub={`Last ${days} days`}
+          />
+          <KpiCard
+            label="Avg Response Time"
+            value={overview ? `${Math.round(overview.avg_latency_ms)} ms` : '—'}
+            sub="End-to-end latency"
+          />
+          <KpiCard
+            label="Cache Hit Rate"
+            value={overview ? `${overview.cache_hit_rate_pct.toFixed(1)}%` : '—'}
+            sub="Responses from cache"
+          />
+          <KpiCard
+            label="Success Rate"
+            value={overview ? `${overview.success_rate_pct.toFixed(1)}%` : '—'}
+            sub="Answered from documents"
+          />
+        </div>
+      )}
 
-          {/* Charts row 1: full-width line chart */}
+      {!loading && (
+        <>
+          {/* ── Volume chart ───────────────────────────── */}
           <QueryVolumeChart data={volume} />
 
-          {/* Charts row 2: language + topic side by side */}
+          {/* ── Language + Topic charts ─────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <LanguageChart data={languages} />
             <TopicChart data={topics} />
           </div>
 
-          {/* Top queries table */}
+          {/* ── Top queries table ──────────────────────── */}
           {topQueries.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">Top Questions</h3>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100">
+                <h3 className="text-sm font-semibold text-slate-800">Top Questions</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Most frequently asked queries</p>
+              </div>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
-                    <th className="pb-2 font-medium">#</th>
-                    <th className="pb-2 font-medium">Query</th>
-                    <th className="pb-2 font-medium text-right">Count</th>
+                  <tr className="text-left border-b border-slate-100 bg-slate-50/60">
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 w-10">#</th>
+                    <th className="px-3 py-3 text-xs font-semibold text-slate-500">Query</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-slate-500 text-right">Count</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-slate-50">
                   {topQueries.map((q, i) => (
-                    <tr key={i}>
-                      <td className="py-2 text-gray-400 w-8">{i + 1}</td>
-                      <td className="py-2 text-gray-700 pr-4">{q.query}</td>
-                      <td className="py-2 text-gray-800 font-medium text-right">{q.count}</td>
+                    <tr key={i} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-3">
+                        <span className="inline-flex items-center justify-center w-5 h-5
+                                         rounded-full bg-slate-100 text-slate-500 text-xs font-medium">
+                          {i + 1}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-slate-700 pr-8">{q.query}</td>
+                      <td className="px-6 py-3 text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full
+                                         bg-primary-50 text-primary-700 text-xs font-semibold">
+                          {q.count}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

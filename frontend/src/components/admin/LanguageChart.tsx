@@ -17,15 +17,25 @@ interface LanguageStat {
 }
 
 const COLORS: Record<string, string> = {
-  en: '#4f46e5',
-  ur: '#10b981',
-  mixed: '#f59e0b',
+  en: '#2563eb',
+  ur: '#f59e0b',
+  mixed: '#10b981',
 }
 
 const LABELS: Record<string, string> = {
   en: 'English',
   ur: 'Roman Urdu',
   mixed: 'Mixed',
+}
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-slate-900 text-white text-xs px-3 py-2 rounded-lg shadow-xl">
+      <p className="text-slate-400 mb-0.5">{label}</p>
+      <p className="font-semibold">{payload[0].value} queries</p>
+    </div>
+  )
 }
 
 export default function LanguageChart({ data }: { data: LanguageStat[] }) {
@@ -35,17 +45,28 @@ export default function LanguageChart({ data }: { data: LanguageStat[] }) {
   }))
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Queries by Language</h3>
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <div className="mb-5">
+        <h3 className="text-sm font-semibold text-slate-800">Language Distribution</h3>
+        <p className="text-xs text-slate-500 mt-0.5">Queries by detected language</p>
+      </div>
       <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={formatted} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#6b7280' }} />
-          <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} allowDecimals={false} />
-          <Tooltip
-            contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }}
+        <BarChart data={formatted} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 10, fill: '#94a3b8' }}
+            axisLine={false}
+            tickLine={false}
           />
-          <Bar dataKey="count" name="Queries" radius={[4, 4, 0, 0]}>
+          <YAxis
+            tick={{ fontSize: 10, fill: '#94a3b8' }}
+            axisLine={false}
+            tickLine={false}
+            allowDecimals={false}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Bar dataKey="count" name="Queries" radius={[5, 5, 0, 0]} maxBarSize={52}>
             {formatted.map((entry, i) => (
               <Cell key={i} fill={COLORS[entry.language] ?? '#6366f1'} />
             ))}

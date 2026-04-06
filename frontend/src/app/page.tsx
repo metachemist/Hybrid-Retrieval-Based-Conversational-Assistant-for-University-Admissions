@@ -5,7 +5,7 @@ import Link from 'next/link'
 import ChatMessage from '@/components/ChatMessage'
 import ChatInput from '@/components/ChatInput'
 import TypingIndicator from '@/components/TypingIndicator'
-import { BookOpen, Info, LayoutDashboard, LogIn, LogOut } from 'lucide-react'
+import { GraduationCap, LayoutDashboard, LogIn, LogOut, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 
@@ -29,6 +29,13 @@ export interface Citation {
   content_preview: string
 }
 
+const SUGGESTIONS = [
+  'Eligibility criteria for undergraduate?',
+  'Last date for form submission?',
+  'Required documents for admission?',
+  'Fee structure for this year?',
+]
+
 export default function Home() {
   const { user, logout } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
@@ -36,32 +43,25 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
   useEffect(() => {
-    scrollToBottom()
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const sendMessage = async (query: string) => {
     if (!query.trim()) return
-
     setError(null)
     setIsLoading(true)
 
-    const userMessage: Message = {
+    setMessages(prev => [...prev, {
       id: Date.now().toString(),
       role: 'user',
       content: query,
       timestamp: new Date(),
-    }
-    setMessages(prev => [...prev, userMessage])
+    }])
 
     try {
       const data = await api.chat({ query, top_k: 10, use_hybrid: true })
-
-      const assistantMessage: Message = {
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: data.response,
@@ -70,145 +70,145 @@ export default function Home() {
         language: data.language,
         latency_ms: data.latency_ms,
         llm_provider: data.llm_provider,
-      }
-      setMessages(prev => [...prev, assistantMessage])
+      }])
     } catch (err) {
       console.error('Error sending message:', err)
-      setError('Failed to get response. Please try again.')
-
-      const errorMessage: Message = {
+      setError('Failed to get a response. Please try again.')
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: "I'm sorry, I encountered an error while processing your request. Please try again later.",
         timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      }])
     } finally {
       setIsLoading(false)
     }
   }
 
-  const suggestedQueries = [
-    "What are the eligibility criteria for admission?",
-    "Last date for form submission?",
-    "Required documents for admission?",
-    "Admission fee structure?",
-  ]
-
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between">
-      {/* Header */}
-      <header className="w-full bg-primary-700 text-white py-4 px-6 shadow-lg">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+    <main className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+
+      {/* ── Header ──────────────────────────────────────── */}
+      <header className="flex-shrink-0 bg-slate-900 text-white">
+        <div className="max-w-4xl mx-auto px-5 py-3.5 flex items-center justify-between">
+          {/* Brand */}
           <div className="flex items-center gap-3">
-            <BookOpen className="w-8 h-8" />
+            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-inner">
+              <GraduationCap className="w-4.5 h-4.5 text-white" strokeWidth={2} />
+            </div>
             <div>
-              <h1 className="text-xl font-bold">Admission Policy Chatbot</h1>
-              <p className="text-sm text-primary-200">University of Karachi</p>
+              <p className="text-sm font-semibold leading-none text-white">Admission Assistant</p>
+              <p className="text-xs text-slate-400 leading-none mt-0.5">University of Karachi</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => alert('This chatbot provides information based on official admission documents. Always verify with the admission office for critical decisions.')}
-              className="p-2 hover:bg-primary-600 rounded-full transition-colors"
-              title="About"
-            >
-              <Info className="w-5 h-5" />
-            </button>
-
+          {/* Actions */}
+          <div className="flex items-center gap-1.5">
             {user?.role === 'admin' && (
               <Link
                 href="/admin"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500
-                           rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                           text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
               >
-                <LayoutDashboard className="w-4 h-4" />
+                <LayoutDashboard className="w-3.5 h-3.5" />
                 Dashboard
               </Link>
             )}
-
             {user ? (
               <button
                 onClick={logout}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500
-                           rounded-lg text-sm font-medium transition-colors"
-                title={`Logged in as ${user.email}`}
+                title={`Signed in as ${user.email}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                           text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
               >
-                <LogOut className="w-4 h-4" />
-                Logout
+                <LogOut className="w-3.5 h-3.5" />
+                Sign out
               </button>
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500
-                           rounded-lg text-sm font-medium transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                           bg-primary-600 hover:bg-primary-500 text-white transition-colors"
               >
-                <LogIn className="w-4 h-4" />
-                Login
+                <LogIn className="w-3.5 h-3.5" />
+                Sign in
               </Link>
             )}
           </div>
         </div>
       </header>
 
-      {/* Chat Container */}
-      <div className="flex-1 w-full max-w-4xl mx-auto flex flex-col">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center py-20">
-              <BookOpen className="w-16 h-16 text-primary-500 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Welcome to Admission Policy Chatbot
+      {/* ── Messages ─────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto">
+        {messages.length === 0 ? (
+          /* Empty state */
+          <div className="dot-grid h-full flex items-center justify-center px-4">
+            <div className="text-center max-w-lg">
+              {/* Icon */}
+              <div className="relative inline-flex mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-md
+                                flex items-center justify-center">
+                  <Sparkles className="w-7 h-7 text-primary-600" />
+                </div>
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400
+                                 border-2 border-white" />
+              </div>
+
+              {/* Heading */}
+              <h2 className="font-serif-display text-3xl text-slate-900 mb-2">
+                Ask me anything
               </h2>
-              <p className="text-gray-600 mb-6 max-w-md">
-                Ask me anything about University of Karachi admission policies,
-                requirements, deadlines, and procedures.
+              <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+                I have access to official University of Karachi admission documents.
+                Try asking about eligibility, fees, deadlines, or required materials.
               </p>
-              <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
-                {suggestedQueries.map((query, index) => (
+
+              {/* Suggestion chips */}
+              <div className="flex flex-wrap gap-2 justify-center">
+                {SUGGESTIONS.map((q, i) => (
                   <button
-                    key={index}
-                    onClick={() => sendMessage(query)}
-                    className="px-4 py-2 bg-white border border-primary-300 text-primary-700
-                             rounded-full text-sm hover:bg-primary-50 transition-colors
-                             shadow-sm"
+                    key={i}
+                    onClick={() => sendMessage(q)}
+                    className="px-4 py-2 bg-white border border-slate-200 text-slate-700
+                               rounded-full text-xs font-medium hover:border-primary-400
+                               hover:text-primary-700 hover:bg-primary-50
+                               shadow-sm transition-all duration-150"
                   >
-                    {query}
+                    {q}
                   </button>
                 ))}
               </div>
             </div>
-          ) : (
-            <>
-              {messages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                />
-              ))}
-              {isLoading && <TypingIndicator />}
-              {error && (
-                <div className="text-center text-red-600 bg-red-50 py-2 px-4 rounded-lg">
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+            {messages.map(message => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+            {isLoading && <TypingIndicator />}
+            {error && (
+              <div className="flex justify-center">
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200
+                              px-4 py-2 rounded-full">
                   {error}
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
+                </p>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
 
-        {/* Input */}
-        <div className="border-t bg-white p-4">
+      {/* ── Input ────────────────────────────────────────── */}
+      <div className="flex-shrink-0 border-t border-slate-200 bg-white">
+        <div className="max-w-4xl mx-auto px-4 py-3">
           <ChatInput
             onSendMessage={sendMessage}
             disabled={isLoading}
-            placeholder="Ask about admission requirements, deadlines, documents..."
+            placeholder="Ask about admission requirements, deadlines, documents…"
           />
-          <p className="text-xs text-gray-500 text-center mt-2">
-            Responses are generated from official admission documents.
-            Verify critical information with the admission office.
+          <p className="text-center text-xs text-slate-400 mt-2">
+            Responses sourced from official admission documents · Always verify with the admissions office
           </p>
         </div>
       </div>

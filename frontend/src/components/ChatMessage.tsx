@@ -1,7 +1,7 @@
 'use client'
 
-import { Message, Citation } from '@/app/page'
-import { User, Bot, Clock } from 'lucide-react'
+import { Message } from '@/app/page'
+import { User, Sparkles, BookOpen } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import CitationCard from './CitationCard'
@@ -11,83 +11,102 @@ interface ChatMessageProps {
   message: Message
 }
 
+const LANG_LABEL: Record<string, string> = {
+  en: 'English',
+  ur: 'Roman Urdu',
+  mixed: 'Mixed',
+}
+
 export default function ChatMessage({ message }: ChatMessageProps) {
   const [showCitations, setShowCitations] = useState(false)
   const isUser = message.role === 'user'
 
   return (
-    <div className={`flex gap-3 message-enter ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-3 message-enter ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+
       {/* Avatar */}
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
-        ${isUser ? 'bg-primary-600' : 'bg-green-600'}`}>
-        {isUser ? (
-          <User className="w-5 h-5 text-white" />
-        ) : (
-          <Bot className="w-5 h-5 text-white" />
-        )}
+      <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-sm
+        ${isUser
+          ? 'bg-primary-600'
+          : 'bg-slate-800 border border-slate-700'
+        }`}>
+        {isUser
+          ? <User className="w-4 h-4 text-white" />
+          : <Sparkles className="w-4 h-4 text-amber-400" />
+        }
       </div>
 
-      {/* Message Content */}
-      <div className={`flex flex-col max-w-[80%] ${isUser ? 'items-end' : 'items-start'}`}>
-        <div className={`rounded-2xl px-4 py-3 shadow-sm
-          ${isUser 
-            ? 'bg-primary-600 text-white rounded-tr-sm' 
-            : 'bg-white text-gray-800 rounded-tl-sm border border-gray-200'
+      {/* Bubble + meta */}
+      <div className={`flex flex-col gap-1.5 max-w-[78%] ${isUser ? 'items-end' : 'items-start'}`}>
+
+        {/* Role label */}
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">
+          {isUser ? 'You' : 'Assistant'}
+        </p>
+
+        {/* Message bubble */}
+        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed
+          ${isUser
+            ? 'bg-primary-600 text-white rounded-tr-sm'
+            : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200 border-l-2 border-l-primary-400 shadow-sm'
           }`}>
-          <ReactMarkdown 
-            remarkPlugins={[remarkGfm]}
-            components={{
-              p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-              ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
-              ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
-              li: ({node, ...props}) => <li className="mb-1" {...props} />,
-              strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
-              em: ({node, ...props}) => <em className="italic" {...props} />,
-            }}
-          >
-            {message.content}
-          </ReactMarkdown>
+          {isUser ? (
+            <p>{message.content}</p>
+          ) : (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p:      ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                ul:     ({ node, ...props }) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
+                ol:     ({ node, ...props }) => <ol className="list-decimal list-inside mb-2 space-y-1" {...props} />,
+                li:     ({ node, ...props }) => <li className="text-slate-700" {...props} />,
+                strong: ({ node, ...props }) => <strong className="font-semibold text-slate-900" {...props} />,
+                em:     ({ node, ...props }) => <em className="italic text-slate-600" {...props} />,
+                code:   ({ node, ...props }) => (
+                  <code className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-xs font-mono" {...props} />
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          )}
         </div>
 
-        {/* Metadata */}
-        <div className={`flex items-center gap-2 mt-1 text-xs text-gray-500
-          ${isUser ? 'flex-row-reverse' : ''}`}>
-          <span className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+        {/* Metadata row */}
+        <div className={`flex items-center gap-2 flex-wrap px-1 ${isUser ? 'flex-row-reverse' : ''}`}>
+          <span className="text-[10px] text-slate-400">
             {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
           {!isUser && message.latency_ms && (
-            <span>{message.latency_ms}ms</span>
+            <span className="text-[10px] text-slate-400">{message.latency_ms}ms</span>
           )}
           {!isUser && message.llm_provider && (
-            <span className="px-2 py-0.5 bg-gray-100 rounded-full capitalize">
+            <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-medium capitalize">
               {message.llm_provider}
             </span>
           )}
           {!isUser && message.language && (
-            <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full capitalize">
-              {message.language === 'ur' ? 'Roman Urdu' : message.language === 'mixed' ? 'Mixed' : 'English'}
+            <span className="px-1.5 py-0.5 bg-primary-50 text-primary-600 rounded-full text-[10px] font-medium">
+              {LANG_LABEL[message.language] ?? message.language}
             </span>
           )}
         </div>
 
-        {/* Citations */}
+        {/* Citations toggle */}
         {!isUser && message.citations && message.citations.length > 0 && (
-          <div className="mt-2 w-full">
+          <div className="w-full">
             <button
               onClick={() => setShowCitations(!showCitations)}
-              className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500
+                         hover:text-primary-600 transition-colors px-1"
             >
-              📚 {showCitations ? 'Hide' : 'Show'} sources ({message.citations.length})
+              <BookOpen className="w-3 h-3" />
+              {showCitations ? 'Hide' : 'Show'} {message.citations.length} source{message.citations.length !== 1 ? 's' : ''}
             </button>
-            
             {showCitations && (
               <div className="mt-2 space-y-2">
-                {message.citations.map((citation) => (
-                  <CitationCard
-                    key={citation.index}
-                    citation={citation}
-                  />
+                {message.citations.map(citation => (
+                  <CitationCard key={citation.index} citation={citation} />
                 ))}
               </div>
             )}

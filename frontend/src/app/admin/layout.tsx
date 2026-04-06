@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { BookOpen, LayoutDashboard, FileText, LogOut, Home } from 'lucide-react'
+import { GraduationCap, LayoutDashboard, FileText, LogOut, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 
 const navItems = [
@@ -22,70 +22,88 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, isLoading, router])
 
-  // Show nothing while auth is resolving or redirect is pending
-  if (isLoading || !user || user.role !== 'admin') {
-    return null
-  }
+  if (isLoading || !user || user.role !== 'admin') return null
+
+  const initials = user.email.slice(0, 2).toUpperCase()
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
+    <div className="flex min-h-screen bg-slate-50">
+
+      {/* ── Sidebar ─────────────────────────────────────── */}
+      <aside className="w-60 bg-slate-950 flex flex-col flex-shrink-0">
+
         {/* Logo */}
-        <div className="px-4 py-5 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-white" />
+        <div className="px-5 py-5 border-b border-white/5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center shadow-inner">
+              <GraduationCap className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800 leading-tight">Admin Panel</p>
-              <p className="text-xs text-gray-500 leading-tight">UoK Chatbot</p>
+              <p className="text-xs font-semibold text-white leading-none">Admin Console</p>
+              <p className="text-xs text-slate-500 leading-none mt-0.5">UoK Chatbot</p>
             </div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-0.5">
+          <p className="px-3 mb-2 text-[10px] font-semibold text-slate-600 uppercase tracking-widest">
+            Navigation
+          </p>
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = pathname === href
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium
+                            transition-colors ${
                   active
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                    ? 'bg-white/10 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-amber-400' : ''}`} />
                 {label}
+                {active && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400" />
+                )}
               </Link>
             )
           })}
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-4 border-t border-gray-100 space-y-1">
+        <div className="px-3 py-4 border-t border-white/5 space-y-0.5">
           <Link
             href="/"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
+                       text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
           >
-            <Home className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" />
             Back to Chatbot
           </Link>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
+                       text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Sign out
           </button>
-          <p className="px-3 pt-2 text-xs text-gray-400 truncate">{user.email}</p>
+
+          {/* User chip */}
+          <div className="flex items-center gap-2.5 px-3 py-2 mt-2">
+            <div className="w-7 h-7 rounded-lg bg-slate-700 flex items-center justify-center
+                            text-xs font-bold text-white flex-shrink-0">
+              {initials}
+            </div>
+            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          </div>
         </div>
       </aside>
 
-      {/* Main content */}
+      {/* ── Main ────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
         {children}
       </div>
