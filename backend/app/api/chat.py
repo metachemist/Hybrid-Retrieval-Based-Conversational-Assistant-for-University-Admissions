@@ -12,12 +12,14 @@ import json
 
 from ..core.database import get_db
 from ..core.config import settings
+from ..core.security import get_current_user
 from ..models import QueryLog
 from ..services.roman_urdu import LanguageDetector, RomanUrduNormalizer
 from ..services.retrieval.hybrid_retriever import get_retriever
 from ..services.retrieval.embeddings import get_embedding_model
 from ..services.rag.llm_provider import get_llm_provider
 from ..services.rag.prompt import create_rag_prompt, RAGPromptBuilder
+from ..services.analytics.topic_classifier import classify as classify_topic
 
 router = APIRouter()
 
@@ -59,7 +61,8 @@ normalizer = RomanUrduNormalizer(use_translation=False)
 async def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
-    client_request: Request = None
+    client_request: Request = None,
+    current_user=Depends(get_current_user),
 ):
     """
     Process a user query and generate a RAG-based response.
@@ -115,9 +118,10 @@ async def chat(
     retrieval_scores = {str(chunk.id): float(score) for chunk, score, meta in results}
     
     # Build document title map
+    from ..models import Document
     documents = {}
     for chunk, score, meta in results:
-        doc = db.query(type(chunk)).filter_by(id=chunk.doc_id).first()
+        doc = db.query(Document).filter_by(id=chunk.doc_id).first()
         if doc:
             documents[str(chunk.doc_id)] = doc.title
     
@@ -171,6 +175,7 @@ async def chat(
     latency_ms = int((time.time() - start_time) * 1000)
     
     # Step 8: Log query for analytics
+    topic = classify_topic(normalized_query)
     try:
         query_log = QueryLog(
             query_text=query,
@@ -180,7 +185,9 @@ async def chat(
             latency_ms=latency_ms,
             cache_hit=False,
             llm_provider=provider_name,
-            retrieval_scores=json.dumps(retrieval_scores)
+            retrieval_scores=json.dumps(retrieval_scores),
+            topic=topic,
+            user_id=current_user.id if current_user else None,
         )
         db.add(query_log)
         db.commit()
@@ -224,10 +231,11 @@ async def chat_stream(
             yield "data: I couldn't find relevant information.\n\n"
             return
         
+        from ..models import Document as DocumentModel
         chunks = [chunk for chunk, score, meta in results]
         documents = {}
         for chunk, score, meta in results:
-            doc = db.query(type(chunk)).filter_by(id=chunk.doc_id).first()
+            doc = db.query(DocumentModel).filter_by(id=chunk.doc_id).first()
             if doc:
                 documents[str(chunk.doc_id)] = doc.title
         

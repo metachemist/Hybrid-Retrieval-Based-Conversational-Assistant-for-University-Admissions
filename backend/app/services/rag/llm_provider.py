@@ -12,8 +12,6 @@ from typing import Optional, List, Dict, AsyncGenerator
 from abc import ABC, abstractmethod
 import logging
 
-import sys
-sys.path.insert(0, '/home/metachemist/Code/FYP/backend')
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -87,7 +85,7 @@ class AnthropicProvider(LLMProviderBase):
         client = self._get_client()
         
         response = await client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-haiku-4-5-20251001",
             max_tokens=max_tokens,
             temperature=temperature,
             system=system_prompt,
@@ -106,7 +104,7 @@ class AnthropicProvider(LLMProviderBase):
         client = self._get_client()
         
         async with client.messages.stream(
-            model="claude-3-haiku-20240307",
+            model="claude-haiku-4-5-20251001",
             max_tokens=max_tokens,
             temperature=temperature,
             system=system_prompt,

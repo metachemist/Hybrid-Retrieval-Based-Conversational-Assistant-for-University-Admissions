@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/admission_db"
     
-    # Embeddings
-    EMBEDDING_MODEL: str = "intfloat/multilingual-e5-large"
-    EMBEDDING_DIMENSION: int = 1024
+    # Embeddings (using OpenAI API for development; switch to multilingual-e5-large for production)
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_DIMENSION: int = 1536
     
     # LLM Providers
     ANTHROPIC_API_KEY: Optional[str] = None
@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 10
     RATE_LIMIT_PER_HOUR: int = 100
     
+    # Auth
+    SECRET_KEY: str = "change-me-in-production"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
+    ADMIN_REGISTRATION_KEY: str = "set-a-strong-secret-in-env"
+
     # Monitoring
     SENTRY_DSN: Optional[str] = None
     

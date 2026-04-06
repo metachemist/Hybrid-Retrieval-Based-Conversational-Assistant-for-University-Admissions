@@ -5,7 +5,7 @@ Provides system health and status information.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, func
 from pydantic import BaseModel
 from typing import Optional, Dict
 import time
@@ -162,7 +162,7 @@ async def query_stats(
     # Language distribution
     lang_stats = db.query(
         QueryLog.detected_language,
-        db.func.count(QueryLog.id)
+        func.count(QueryLog.id)
     ).filter(
         QueryLog.created_at >= cutoff
     ).group_by(QueryLog.detected_language).all()

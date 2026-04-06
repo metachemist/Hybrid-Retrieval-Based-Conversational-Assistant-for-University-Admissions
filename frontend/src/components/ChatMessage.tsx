@@ -9,10 +9,9 @@ import { useState } from 'react'
 
 interface ChatMessageProps {
   message: Message
-  onCitationClick: (citation: Citation) => void
 }
 
-export default function ChatMessage({ message, onCitationClick }: ChatMessageProps) {
+export default function ChatMessage({ message }: ChatMessageProps) {
   const [showCitations, setShowCitations] = useState(false)
   const isUser = message.role === 'user'
 
@@ -88,7 +87,6 @@ export default function ChatMessage({ message, onCitationClick }: ChatMessagePro
                   <CitationCard
                     key={citation.index}
                     citation={citation}
-                    onClick={() => onCitationClick(citation)}
                   />
                 ))}
               </div>

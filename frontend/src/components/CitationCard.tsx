@@ -6,10 +6,9 @@ import { useState } from 'react'
 
 interface CitationCardProps {
   citation: Citation
-  onClick: () => void
 }
 
-export default function CitationCard({ citation, onClick }: CitationCardProps) {
+export default function CitationCard({ citation }: CitationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (

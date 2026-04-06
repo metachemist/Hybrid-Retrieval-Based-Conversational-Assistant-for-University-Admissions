@@ -1,10 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import ChatMessage from '@/components/ChatMessage'
 import ChatInput from '@/components/ChatInput'
 import TypingIndicator from '@/components/TypingIndicator'
-import { Send, BookOpen, Info } from 'lucide-react'
+import { BookOpen, Info, LayoutDashboard, LogIn, LogOut } from 'lucide-react'
+import { api } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 
 export interface Message {
   id: string
@@ -27,6 +30,7 @@ export interface Citation {
 }
 
 export default function Home() {
+  const { user, logout } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +50,6 @@ export default function Home() {
     setError(null)
     setIsLoading(true)
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -56,25 +59,8 @@ export default function Home() {
     setMessages(prev => [...prev, userMessage])
 
     try {
-      const response = await fetch(`${process.env.API_URL || 'http://localhost:8000'}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: query,
-          top_k: 10,
-          use_hybrid: true,
-        }),
-      })
+      const data = await api.chat({ query, top_k: 10, use_hybrid: true })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      // Add assistant response
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -89,8 +75,7 @@ export default function Home() {
     } catch (err) {
       console.error('Error sending message:', err)
       setError('Failed to get response. Please try again.')
-      
-      // Add error message
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -122,13 +107,48 @@ export default function Home() {
               <p className="text-sm text-primary-200">University of Karachi</p>
             </div>
           </div>
-          <button
-            onClick={() => alert('This chatbot provides information based on official admission documents. Always verify with the admission office for critical decisions.')}
-            className="p-2 hover:bg-primary-600 rounded-full transition-colors"
-            title="About"
-          >
-            <Info className="w-5 h-5" />
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => alert('This chatbot provides information based on official admission documents. Always verify with the admission office for critical decisions.')}
+              className="p-2 hover:bg-primary-600 rounded-full transition-colors"
+              title="About"
+            >
+              <Info className="w-5 h-5" />
+            </button>
+
+            {user?.role === 'admin' && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500
+                           rounded-lg text-sm font-medium transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </Link>
+            )}
+
+            {user ? (
+              <button
+                onClick={logout}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500
+                           rounded-lg text-sm font-medium transition-colors"
+                title={`Logged in as ${user.email}`}
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500
+                           rounded-lg text-sm font-medium transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                Login
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
@@ -143,7 +163,7 @@ export default function Home() {
                 Welcome to Admission Policy Chatbot
               </h2>
               <p className="text-gray-600 mb-6 max-w-md">
-                Ask me anything about University of Karachi admission policies, 
+                Ask me anything about University of Karachi admission policies,
                 requirements, deadlines, and procedures.
               </p>
               <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
@@ -151,7 +171,7 @@ export default function Home() {
                   <button
                     key={index}
                     onClick={() => sendMessage(query)}
-                    className="px-4 py-2 bg-white border border-primary-300 text-primary-700 
+                    className="px-4 py-2 bg-white border border-primary-300 text-primary-700
                              rounded-full text-sm hover:bg-primary-50 transition-colors
                              shadow-sm"
                   >
@@ -166,10 +186,6 @@ export default function Home() {
                 <ChatMessage
                   key={message.id}
                   message={message}
-                  onCitationClick={(citation) => {
-                    // Handle citation click
-                    console.log('Citation clicked:', citation)
-                  }}
                 />
               ))}
               {isLoading && <TypingIndicator />}
@@ -191,7 +207,7 @@ export default function Home() {
             placeholder="Ask about admission requirements, deadlines, documents..."
           />
           <p className="text-xs text-gray-500 text-center mt-2">
-            Responses are generated from official admission documents. 
+            Responses are generated from official admission documents.
             Verify critical information with the admission office.
           </p>
         </div>

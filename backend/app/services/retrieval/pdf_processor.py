@@ -108,58 +108,61 @@ class PDFProcessor:
     def extract_with_sections(self, file_path: str) -> List[ExtractedSection]:
         """
         Extract text organized by sections.
-        
+
+        Pages before the first detected header are grouped under a "General"
+        section so no content is silently dropped.
+
         Args:
             file_path: Path to the PDF file
-            
+
         Returns:
             List of ExtractedSection objects
         """
         doc = fitz.open(file_path)
         sections = []
-        
-        current_section = None
+
+        current_section = "General"
         current_content = []
         current_page_start = 0
-        
+
         for page_num in range(len(doc)):
             page = doc[page_num]
             text = page.get_text("text")
             cleaned_text = self._clean_page(text, page_num)
-            
-            # Check for section headers
+
             section_header = self._detect_section_header(cleaned_text)
-            
-            if section_header:
-                # Save previous section
-                if current_section:
+
+            if section_header and section_header != current_section:
+                # Save previous section (skip empty ones)
+                combined = "\n".join(current_content).strip()
+                if combined:
                     sections.append(ExtractedSection(
-                        content="\n".join(current_content),
+                        content=combined,
                         section_header=current_section,
                         page_start=current_page_start,
                         page_end=page_num - 1 if page_num > 0 else page_num,
                         chunk_type="text",
                         metadata={"doc_path": file_path}
                     ))
-                
-                # Start new section
+
                 current_section = section_header
                 current_content = [cleaned_text]
                 current_page_start = page_num
             else:
                 current_content.append(cleaned_text)
-        
+
         # Save last section
-        if current_section:
+        combined = "\n".join(current_content).strip()
+        if combined:
             sections.append(ExtractedSection(
-                content="\n".join(current_content),
+                content=combined,
                 section_header=current_section,
                 page_start=current_page_start,
                 page_end=len(doc) - 1,
                 chunk_type="text",
                 metadata={"doc_path": file_path}
             ))
-        
+
         doc.close()
         return sections
     
@@ -189,18 +192,18 @@ class PDFProcessor:
     
     def _extract_year(self, text: str) -> Optional[int]:
         """Extract year from text."""
-        # Look for 4-digit years in common patterns
+        # Each tuple: (pattern, group_index_with_the_year)
         patterns = [
-            r'(19|20)\d{2}',  # Any year 1900-2099
-            r'Academic\s+Session\s+(19|20)\d{2}',
-            r'Session\s+(19|20)\d{2}',
+            (r'Academic\s+Session\s+((19|20)\d{2})', 1),
+            (r'Session\s+((19|20)\d{2})', 1),
+            (r'((19|20)\d{2})', 1),  # fallback: any 4-digit year
         ]
-        
-        for pattern in patterns:
+
+        for pattern, group in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                return int(match.group())
-        
+                return int(match.group(group))
+
         return None
     
     def _clean_page(self, text: str, page_num: int) -> str:

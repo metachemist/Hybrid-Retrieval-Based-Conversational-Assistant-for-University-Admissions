@@ -16,101 +16,77 @@ class RomanUrduNormalizer:
     Normalizes Roman Urdu text to standard spelling.
     """
     
-    # Character mapping for common variations
+    # Character mapping for Roman Urdu vowel elongation patterns.
+    # IMPORTANT: these are only applied to words that are already identified
+    # as Roman Urdu via WORD_MAPPINGS — never applied to the full sentence —
+    # to avoid corrupting English words like "class", "main", "application".
     CHARACTER_MAPPINGS = {
-        'aa': 'a',
         'aaa': 'a',
-        'ee': 'e',
         'eee': 'e',
-        'oo': 'o',
         'ooo': 'o',
-        'ii': 'i',
         'iii': 'i',
-        'uu': 'u',
         'uuu': 'u',
-        'ae': 'a',
-        'ai': 'a',
-        'ao': 'a',
-        'ei': 'e',
-        'ea': 'e',
-        'ie': 'e',
-        'oa': 'o',
-        'oe': 'o',
-        'io': 'o',
-        'ui': 'u',
-        'iu': 'u',
+        'aa': 'a',
+        'ee': 'e',
+        'oo': 'o',
     }
     
-    # Common word normalizations (admission context)
+    # Word-level normalizations for Roman Urdu.
+    # Only unambiguous Roman Urdu words are mapped — common English words
+    # like "or", "to", "main", "par", "he" are deliberately excluded to
+    # avoid corrupting mixed-language queries.
     WORD_MAPPINGS = {
         # University related
-        'kal': 'university',
         'kull': 'university',
         'kul': 'university',
-        'uni': 'university',
         'varsity': 'university',
-        
+
         # Admission related
         'admisn': 'admission',
         'admn': 'admission',
         'addmission': 'admission',
         'admisison': 'admission',
-        
+
         # Document related
-        'doc': 'document',
-        'docs': 'documents',
         'documentz': 'documents',
         'documnet': 'document',
         'documnets': 'documents',
-        
+
         # Fee related
         'fii': 'fee',
-        'fees': 'fee',
         'fe': 'fee',
-        
+
         # Form related
         'forme': 'form',
-        'from': 'form',
         'formm': 'form',
-        
+
         # Date/Time related
         'dat': 'date',
         'deed': 'date',
-        'last': 'last',
         'laast': 'last',
-        'final': 'final',
-        
-        # Question words
+
+        # Question words (unambiguous Roman Urdu only)
         'kya': 'what',
         'kyaa': 'what',
-        'ky': 'what',
         'kaise': 'how',
         'kese': 'how',
         'kesay': 'how',
         'kahan': 'where',
-        'kahan': 'where',
         'kab': 'when',
         'kyun': 'why',
-        'q': 'why',
         'kaun': 'who',
         'kon': 'who',
-        
+
         # Verbs
-        'hai': 'is',
-        'he': 'is',
         'hy': 'is',
-        'hai': 'is',
-        'tha': 'was',
-        'tha': 'was',
         'hoga': 'will be',
         'honge': 'will be',
         'hain': 'are',
         'hein': 'are',
-        
+
         # Possessives
         'mera': 'my',
         'meri': 'my',
-        'mera': 'my',
         'tera': 'your',
         'teri': 'your',
         'uska': 'his/her',
@@ -119,30 +95,21 @@ class RomanUrduNormalizer:
         'hamari': 'our',
         'unka': 'their',
         'unki': 'their',
-        
-        # Conjunctions
+
+        # Conjunctions (unambiguous only — 'or', 'to', 'par' omitted)
         'aur': 'and',
-        'or': 'and',
         'lekin': 'but',
         'lekun': 'but',
-        'par': 'but',
-        'ya': 'or',
         'toh': 'then',
-        'to': 'then',
         'phir': 'then',
         'fir': 'then',
-        
-        # Prepositions
+
+        # Prepositions (unambiguous only — 'main', 'se', 'ko' omitted)
         'mein': 'in',
-        'men': 'in',
-        'main': 'in',
-        'se': 'from',
-        'say': 'from',
-        'ko': 'to',
         'ke': 'of',
         'ki': 'of',
         'ka': 'of',
-        
+
         # Requirements
         'chahiye': 'needed',
         'chaiye': 'needed',
@@ -150,38 +117,14 @@ class RomanUrduNormalizer:
         'lagta': 'required',
         'lagte': 'required',
         'lagti': 'required',
-        
-        # Programs
-        'degree': 'degree',
+
+        # Spelling corrections (domain-specific)
         'digree': 'degree',
-        'program': 'program',
         'programme': 'program',
-        'course': 'course',
         'cours': 'course',
-        
-        # Eligibility
-        'eligible': 'eligible',
-        'eligible': 'eligible',
-        'apply': 'apply',
-        'apply': 'apply',
-        'qualification': 'qualification',
         'qualifiction': 'qualification',
-        
-        # Merit
-        'merit': 'merit',
         'marit': 'merit',
-        'percentage': 'percentage',
-        'percent': 'percent',
-        'marks': 'marks',
-        'mark': 'mark',
-        
-        # Process
-        'process': 'process',
         'proces': 'process',
-        'procedure': 'procedure',
-        'apply': 'apply',
-        'submission': 'submission',
-        'submit': 'submit',
     }
     
     # Suffix patterns
@@ -282,24 +225,35 @@ class RomanUrduNormalizer:
         )
     
     def _apply_word_mappings(self, text: str) -> str:
-        """Apply word-level mappings."""
+        """Apply word-level mappings.
+
+        Character mappings (vowel elongation) are only applied to words that
+        are already in WORD_MAPPINGS — never to arbitrary English words.
+        """
         words = re.findall(r'\b\w+\b|\W+', text)
         normalized_words = []
-        
+
         for word in words:
             if re.match(r'\w+', word):
-                # Check for exact match
-                normalized = self.WORD_MAPPINGS.get(word.lower(), word)
-                
-                # If not translating, keep original word after character normalization
-                if not self.use_translation and normalized != word:
-                    # Only apply character mappings, not translation
-                    normalized = self._apply_character_mappings(word)
-                
+                word_lower = word.lower()
+                if word_lower in self.WORD_MAPPINGS:
+                    # Known Roman Urdu word — apply character normalisation then translate
+                    char_normalized = self._apply_character_mappings(word_lower)
+                    normalized = self.WORD_MAPPINGS.get(char_normalized, char_normalized)
+                    if not self.use_translation:
+                        # Normalise spelling only, don't translate to English
+                        normalized = char_normalized
+                else:
+                    # Unknown word — apply character normalisation only if it
+                    # looks like an elongated Roman Urdu word (3+ repeated vowels)
+                    if re.search(r'(aa|ee|oo|aaa|eee|ooo)', word_lower):
+                        normalized = self._apply_character_mappings(word_lower)
+                    else:
+                        normalized = word
                 normalized_words.append(normalized)
             else:
                 normalized_words.append(word)
-        
+
         return ''.join(normalized_words)
     
     def get_suggestions(self, word: str, top_n: int = 3) -> List[str]:

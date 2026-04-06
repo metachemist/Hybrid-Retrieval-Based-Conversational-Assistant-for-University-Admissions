@@ -240,8 +240,8 @@ class DocumentChunker:
                             chunk_order=start_order + len(chunks),
                             metadata={}
                         ))
-                        # Overlap: keep last sentence
-                        current_chunk = [sentences[max(0, len(sentences) - 2)]]
+                        # Overlap: keep last sentence of the current chunk
+                        current_chunk = [current_chunk[-1]]
                         current_length = len(current_chunk[0]) // 4
                     else:
                         current_chunk = []

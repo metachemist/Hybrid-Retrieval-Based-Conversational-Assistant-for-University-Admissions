@@ -8,8 +8,6 @@ from typing import List, Optional
 import numpy as np
 from openai import OpenAI
 
-import sys
-sys.path.insert(0, '/home/metachemist/Code/FYP/backend')
 from app.core.config import settings
 
 

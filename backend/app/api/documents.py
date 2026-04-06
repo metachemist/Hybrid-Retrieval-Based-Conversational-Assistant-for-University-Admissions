@@ -12,6 +12,7 @@ import os
 import uuid
 
 from ..core.database import get_db
+from ..core.security import require_admin
 from ..models import Document, Chunk
 from ..services.retrieval.pdf_processor import PDFProcessor
 from ..services.retrieval.chunking import DocumentChunker
@@ -55,7 +56,8 @@ async def upload_document(
     file: UploadFile = File(...),
     title: Optional[str] = Form(None),
     year: Optional[int] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
 ):
     """
     Upload and ingest a PDF document.
@@ -186,6 +188,22 @@ async def list_documents(
     return result
 
 
+@router.get("/documents/stats")
+async def get_stats(db: Session = Depends(get_db)):
+    """Get document and chunk statistics."""
+    doc_count = db.query(Document).count()
+    chunk_count = db.query(Chunk).count()
+
+    first_chunk = db.query(Chunk).first()
+    embedding_dim = len(first_chunk.embedding) if first_chunk and first_chunk.embedding else 0
+
+    return {
+        "total_documents": doc_count,
+        "total_chunks": chunk_count,
+        "embedding_dimension": embedding_dim
+    }
+
+
 @router.get("/documents/{document_id}", response_model=DocumentInfo)
 async def get_document(
     document_id: str,
@@ -193,12 +211,12 @@ async def get_document(
 ):
     """Get details of a specific document."""
     document = db.query(Document).filter(Document.id == document_id).first()
-    
+
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
-    
+
     chunk_count = db.query(Chunk).filter(Chunk.doc_id == document.id).count()
-    
+
     return DocumentInfo(
         id=str(document.id),
         title=document.title,
@@ -212,7 +230,8 @@ async def get_document(
 @router.delete("/documents/{document_id}")
 async def delete_document(
     document_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
 ):
     """
     Delete a document and all its chunks.
@@ -237,7 +256,8 @@ async def delete_document(
 @router.post("/documents/{document_id}/reindex")
 async def reindex_document(
     document_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
 ):
     """
     Re-index a document (re-process chunks and embeddings).
@@ -293,24 +313,7 @@ async def reindex_document(
         db.commit()
         
         return {"status": "completed", "chunks_reindexed": len(chunks_to_store)}
-        
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Re-indexing failed: {str(e)}")
-
-
-@router.get("/documents/stats")
-async def get_stats(db: Session = Depends(get_db)):
-    """Get document and chunk statistics."""
-    doc_count = db.query(Document).count()
-    chunk_count = db.query(Chunk).count()
-    
-    # Get embedding dimension from first chunk
-    first_chunk = db.query(Chunk).first()
-    embedding_dim = len(first_chunk.embedding) if first_chunk and first_chunk.embedding else 0
-    
-    return {
-        "total_documents": doc_count,
-        "total_chunks": chunk_count,
-        "embedding_dimension": embedding_dim
-    }

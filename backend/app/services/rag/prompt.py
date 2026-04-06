@@ -6,8 +6,6 @@ Constructs prompts for the LLM with retrieved context and citation instructions.
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 
-import sys
-sys.path.insert(0, '/home/metachemist/Code/FYP/backend')
 from app.models import Chunk
 
 

@@ -9,8 +9,6 @@ from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 import numpy as np
 
-import sys
-sys.path.insert(0, '/home/metachemist/Code/FYP/backend')
 from app.models import Chunk, Document
 from .embeddings import get_embedding_model
 
@@ -96,32 +94,47 @@ class HybridRetriever:
     ) -> List[Tuple[Chunk, float]]:
         """
         Perform keyword-based full-text search.
-        
-        Uses PostgreSQL's tsvector/tsquery with ranking.
+
+        Uses PostgreSQL FTS in production; falls back to SQLite LIKE-based
+        scoring in demo mode.
         """
-        # Create tsquery from search terms
-        search_terms = query.split()
-        tsquery = " & ".join(f"'{term}'" for term in search_terms if len(term) > 2)
-        
-        if not tsquery:
+        from app.core.database import USE_SQLITE
+
+        search_terms = [t for t in query.split() if len(t) > 2]
+        if not search_terms:
             return []
-        
-        # Full-text search with ranking
-        results = db.query(
-            Chunk,
-            func.ts_rank(
-                func.to_tsvector('english', Chunk.content),
-                func.plainto_tsquery('english', tsquery)
-            ).label('score')
-        ).filter(
-            func.to_tsvector('english', Chunk.content).op('@@')(
-                func.plainto_tsquery('english', tsquery)
-            )
-        ).order_by(
-            text('score DESC')
-        ).limit(top_k).all()
-        
-        return [(chunk, float(score)) for chunk, score in results]
+
+        if not USE_SQLITE:
+            tsquery = " & ".join(f"'{term}'" for term in search_terms)
+            results = db.query(
+                Chunk,
+                func.ts_rank(
+                    func.to_tsvector('english', Chunk.content),
+                    func.plainto_tsquery('english', tsquery)
+                ).label('score')
+            ).filter(
+                func.to_tsvector('english', Chunk.content).op('@@')(
+                    func.plainto_tsquery('english', tsquery)
+                )
+            ).order_by(text('score DESC')).limit(top_k).all()
+            return [(chunk, float(score)) for chunk, score in results]
+
+        # SQLite fallback: score chunks by how many query terms they contain
+        chunks = db.query(Chunk).all()
+        scored = []
+        query_lower = query.lower()
+        terms_lower = [t.lower() for t in search_terms]
+
+        for chunk in chunks:
+            content_lower = chunk.content.lower()
+            hits = sum(1 for term in terms_lower if term in content_lower)
+            if hits > 0:
+                # Normalise by term count so score is in [0, 1]
+                score = hits / len(terms_lower)
+                scored.append((chunk, score))
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:top_k]
     
     def _semantic_search(
         self,
@@ -131,21 +144,42 @@ class HybridRetriever:
     ) -> List[Tuple[Chunk, float]]:
         """
         Perform semantic vector similarity search.
-        
-        Uses pgvector for cosine similarity.
+
+        Uses pgvector for cosine similarity in PostgreSQL mode.
+        Falls back to in-memory cosine similarity for SQLite demo mode.
         """
-        # Generate query embedding
-        query_embedding = self.embedding_model.encode(query)
-        
-        # Vector similarity search (cosine distance)
-        # Note: pgvector uses L2 distance by default, convert to cosine similarity
-        results = db.query(Chunk).order_by(
-            Chunk.embedding.cosine_distance(query_embedding)
-        ).limit(top_k).all()
-        
-        # Calculate cosine similarity scores (1 - distance)
-        return [(chunk, 1.0 - float(chunk.embedding.cosine_distance(query_embedding))) 
-                for chunk in results]
+        from app.core.database import USE_SQLITE
+
+        query_embedding = self.embedding_model.encode_query(query)
+
+        if not USE_SQLITE:
+            # pgvector path
+            results = db.query(Chunk).order_by(
+                Chunk.embedding.cosine_distance(query_embedding)
+            ).limit(top_k).all()
+            return [
+                (chunk, 1.0 - float(chunk.embedding.cosine_distance(query_embedding)))
+                for chunk in results
+            ]
+
+        # SQLite fallback: load all embeddings and compute cosine similarity in Python
+        chunks = db.query(Chunk).filter(Chunk.embedding_data.isnot(None)).all()
+        if not chunks:
+            return []
+
+        scored = []
+        q_norm = np.linalg.norm(query_embedding)
+        for chunk in chunks:
+            vec = chunk.embedding  # returns list via property
+            if vec is None:
+                continue
+            arr = np.array(vec, dtype=np.float32)
+            denom = q_norm * np.linalg.norm(arr)
+            similarity = float(np.dot(query_embedding, arr) / denom) if denom > 0 else 0.0
+            scored.append((chunk, similarity))
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:top_k]
     
     def _reciprocal_rank_fusion(
         self,

@@ -1,12 +1,15 @@
 """
 Admission Policy Chatbot - FastAPI Backend
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import sentry_sdk
 from .core.config import settings
 from .core.database import engine, Base
-from .api import chat, documents, health
+from .api import chat, documents, health, auth, admin
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -14,13 +17,18 @@ Base.metadata.create_all(bind=engine)
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    
+
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
         description="Hybrid RAG-based conversational assistant for university admission policies"
     )
-    
+
+    # Rate limiting
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
     # Configure CORS
     app.add_middleware(
         CORSMiddleware,
@@ -29,7 +37,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Configure Sentry for error tracking
     if settings.SENTRY_DSN:
         sentry_sdk.init(
@@ -37,8 +45,10 @@ def create_app() -> FastAPI:
             traces_sample_rate=0.1,
             profiles_sample_rate=0.1,
         )
-    
+
     # Include routers
+    app.include_router(auth.router, prefix="/api", tags=["auth"])
+    app.include_router(admin.router, prefix="/api", tags=["admin"])
     app.include_router(chat.router, prefix="/api", tags=["chat"])
     app.include_router(documents.router, prefix="/api", tags=["documents"])
     app.include_router(health.router, prefix="/api", tags=["health"])
