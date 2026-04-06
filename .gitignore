@@ -12,6 +12,9 @@ eggs/
 .eggs/
 lib/
 lib64/
+# Allow frontend src/lib (overrides the lib/ rule above)
+!frontend/src/lib/
+!frontend/src/lib/**
 parts/
 sdist/
 var/
