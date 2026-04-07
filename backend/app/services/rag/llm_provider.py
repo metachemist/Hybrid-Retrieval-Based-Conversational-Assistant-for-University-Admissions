@@ -56,11 +56,11 @@ class LLMProviderBase(ABC):
 
 
 class GeminiProvider(LLMProviderBase):
-    """Google Gemini provider — free tier via gemini-1.5-flash."""
+    """Google Gemini provider — free tier via gemini-2.0-flash."""
 
-    def __init__(self, model: str = "gemini-1.5-flash"):
+    def __init__(self, model: str = "gemini-2.0-flash"):
         self.model = model
-        self._configured = False
+        self._client = None
 
     @property
     def name(self) -> str:
@@ -70,11 +70,11 @@ class GeminiProvider(LLMProviderBase):
     def is_available(self) -> bool:
         return settings.GEMINI_API_KEY is not None
 
-    def _configure(self):
-        if not self._configured:
-            import google.generativeai as genai
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self._configured = True
+    def _get_client(self):
+        if self._client is None:
+            from google import genai
+            self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        return self._client
 
     async def generate(
         self,
@@ -83,18 +83,17 @@ class GeminiProvider(LLMProviderBase):
         temperature: float = 0.3,
         max_tokens: int = 1024,
     ) -> str:
-        self._configure()
-        import google.generativeai as genai
-
-        model = genai.GenerativeModel(
-            model_name=self.model,
-            system_instruction=system_prompt or None,
-            generation_config=genai.types.GenerationConfig(
+        from google.genai import types
+        client = self._get_client()
+        response = await client.aio.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt or None,
                 temperature=temperature,
                 max_output_tokens=max_tokens,
             ),
         )
-        response = await model.generate_content_async(prompt)
         return response.text
 
     async def generate_stream(
@@ -104,19 +103,17 @@ class GeminiProvider(LLMProviderBase):
         temperature: float = 0.3,
         max_tokens: int = 1024,
     ) -> AsyncGenerator[str, None]:
-        self._configure()
-        import google.generativeai as genai
-
-        model = genai.GenerativeModel(
-            model_name=self.model,
-            system_instruction=system_prompt or None,
-            generation_config=genai.types.GenerationConfig(
+        from google.genai import types
+        client = self._get_client()
+        async for chunk in await client.aio.models.generate_content_stream(
+            model=self.model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt or None,
                 temperature=temperature,
                 max_output_tokens=max_tokens,
             ),
-        )
-        response = await model.generate_content_async(prompt, stream=True)
-        async for chunk in response:
+        ):
             if chunk.text:
                 yield chunk.text
 
