@@ -55,6 +55,72 @@ class LLMProviderBase(ABC):
         pass
 
 
+class GeminiProvider(LLMProviderBase):
+    """Google Gemini provider — free tier via gemini-1.5-flash."""
+
+    def __init__(self, model: str = "gemini-1.5-flash"):
+        self.model = model
+        self._configured = False
+
+    @property
+    def name(self) -> str:
+        return "gemini"
+
+    @property
+    def is_available(self) -> bool:
+        return settings.GEMINI_API_KEY is not None
+
+    def _configure(self):
+        if not self._configured:
+            import google.generativeai as genai
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+            self._configured = True
+
+    async def generate(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        temperature: float = 0.3,
+        max_tokens: int = 1024,
+    ) -> str:
+        self._configure()
+        import google.generativeai as genai
+
+        model = genai.GenerativeModel(
+            model_name=self.model,
+            system_instruction=system_prompt or None,
+            generation_config=genai.types.GenerationConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            ),
+        )
+        response = await model.generate_content_async(prompt)
+        return response.text
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        temperature: float = 0.3,
+        max_tokens: int = 1024,
+    ) -> AsyncGenerator[str, None]:
+        self._configure()
+        import google.generativeai as genai
+
+        model = genai.GenerativeModel(
+            model_name=self.model,
+            system_instruction=system_prompt or None,
+            generation_config=genai.types.GenerationConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            ),
+        )
+        response = await model.generate_content_async(prompt, stream=True)
+        async for chunk in response:
+            if chunk.text:
+                yield chunk.text
+
+
 class AnthropicProvider(LLMProviderBase):
     """Anthropic Claude provider."""
     
@@ -259,9 +325,10 @@ class LLMProvider:
     
     def __init__(self):
         self.providers: List[LLMProviderBase] = [
-            AnthropicProvider(),
-            OpenAIProvider(),
-            OllamaProvider(),
+            GeminiProvider(),       # free tier — primary
+            AnthropicProvider(),    # fallback 1
+            OpenAIProvider(),       # fallback 2
+            OllamaProvider(),       # fallback 3 (local)
         ]
         self._failure_counts: Dict[str, int] = {p.name: 0 for p in self.providers}
         self._circuit_breaker_threshold = 3  # failures before skipping provider
