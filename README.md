@@ -8,11 +8,14 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 
 ### Key Features
 
-- 📚 **Hybrid Retrieval**: Combines keyword search (BM25) with semantic vector search using Reciprocal Rank Fusion (RRF)
-- 🌐 **Multilingual Support**: Handles English, Roman Urdu, and code-mixed queries
-- 📝 **Citation-Grounded Responses**: All answers include citations to source documents
-- 🤖 **LLM Fallback**: Automatic failover between Anthropic → OpenAI → Local Ollama
-- ⚡ **Fast Response**: Caching and optimized retrieval for sub-3-second responses
+- **Hybrid Retrieval**: Combines keyword search (BM25) with semantic vector search using Reciprocal Rank Fusion (RRF)
+- **Multilingual Support**: Handles English, Roman Urdu, and code-mixed queries
+- **Citation-Grounded Responses**: All answers include citations to source documents
+- **LLM Fallback Chain**: Automatic failover — Gemini → Anthropic → OpenAI → Ollama
+- **Authentication**: User login, registration, and forgot/reset password flows
+- **Admin Panel**: Document management and ingestion interface
+- **Caching & Rate Limiting**: Redis-backed caching with per-minute/per-hour rate limits
+- **Monitoring**: Sentry integration for error tracking
 
 ## Tech Stack
 
@@ -21,9 +24,11 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 | Frontend | Next.js 14 + TypeScript + TailwindCSS |
 | Backend | FastAPI (Python 3.11+) |
 | Database | Neon PostgreSQL + pgvector |
-| Embeddings | multilingual-e5-large |
-| LLM | Anthropic Claude / OpenAI GPT / Ollama |
+| Migrations | Alembic |
+| Embeddings | multilingual-e5-large (prod) / text-embedding-3-small (dev) |
+| LLM | Google Gemini (primary) / Anthropic Claude / OpenAI GPT / Ollama |
 | Document Processing | PyMuPDF |
+| Caching | Redis |
 
 ## Quick Start
 
@@ -32,7 +37,8 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 - Python 3.11+
 - Node.js 20+
 - PostgreSQL 15+ with pgvector extension
-- API keys for LLM provider (Anthropic/OpenAI)
+- Redis
+- At least one LLM API key (Gemini recommended — free tier)
 
 ### Backend Setup
 
@@ -48,13 +54,10 @@ pip install -r requirements.txt
 
 # Copy environment template
 cp .env.example .env
+# Edit .env — set DATABASE_URL and at least one LLM API key
 
-# Edit .env with your settings
-# - DATABASE_URL
-# - ANTHROPIC_API_KEY or OPENAI_API_KEY
-
-# Initialize database
-python ../scripts/init_db.py
+# Run database migrations
+alembic upgrade head
 
 # Start server
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -64,45 +67,71 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
 Visit `http://localhost:3000` to access the chatbot.
 
+## Environment Variables
+
+Key variables in `backend/.env`:
+
+```env
+# Database (Neon PostgreSQL)
+DATABASE_URL="postgresql://user:password@host/admission_db"
+
+# LLM Provider Keys (set at least one; Gemini is free-tier)
+GEMINI_API_KEY=""
+ANTHROPIC_API_KEY=""
+OPENAI_API_KEY=""
+
+# Embedding Model
+EMBEDDING_MODEL="text-embedding-3-small"   # dev
+# EMBEDDING_MODEL="intfloat/multilingual-e5-large"  # prod
+
+# Redis
+REDIS_URL="redis://localhost:6379"
+
+# Auth
+SECRET_KEY="change-me-in-production"
+ADMIN_REGISTRATION_KEY="your-strong-admin-key"
+
+# Rate Limiting
+RATE_LIMIT_PER_MINUTE=10
+RATE_LIMIT_PER_HOUR=100
+```
+
+See `.env.example` for the full list.
+
 ## Project Structure
 
 ```
-FYP/
+.
 ├── backend/
 │   ├── app/
-│   │   ├── api/              # FastAPI routes
+│   │   ├── api/              # FastAPI routes (chat, documents, auth, admin, health)
 │   │   ├── core/             # Config, database
 │   │   ├── models/           # SQLAlchemy models
-│   │   └── services/         # Business logic
-│   │       ├── retrieval/    # Hybrid search engine
-│   │       ├── rag/          # LLM integration
-│   │       └── roman_urdu/   # Language processing
+│   │   └── services/
+│   │       ├── analytics/    # Usage analytics
+│   │       ├── rag/          # LLM provider + prompt templates
+│   │       ├── retrieval/    # Hybrid search engine + embeddings
+│   │       └── roman_urdu/   # Language detection + normalization
+│   ├── alembic/              # Database migrations
 │   ├── tests/
 │   └── requirements.txt
 ├── frontend/
-│   ├── src/
-│   │   ├── app/              # Next.js pages
-│   │   ├── components/       # React components
-│   │   └── lib/              # API client
-│   └── package.json
+│   └── src/
+│       ├── app/              # Next.js pages (chat, login, register, admin, ...)
+│       ├── components/       # ChatInput, ChatMessage, CitationCard, ...
+│       └── lib/              # API client
 ├── data/
 │   ├── raw/                  # Original PDFs
 │   └── processed/            # Cleaned text
-├── docs/
-│   └── IMPLEMENTATION_PLAN.md
 ├── scripts/
-│   └── init_db.py
-└── .github/workflows/        # CI/CD pipelines
+│   └── ingest_documents.py   # Ingestion pipeline
+└── docker-compose.yml
 ```
 
 ## API Endpoints
@@ -121,17 +150,18 @@ POST /api/chat
 ### Documents
 
 ```bash
-# List documents
-GET /api/documents
+GET    /api/documents
+POST   /api/documents/upload     # multipart/form-data: file + title
+DELETE /api/documents/{id}
+```
 
-# Upload document
-POST /api/documents/upload
-Content-Type: multipart/form-data
-file: <pdf_file>
-title: "Admission Prospectus 2024"
+### Auth
 
-# Delete document
-DELETE /api/documents/{document_id}
+```bash
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
 ```
 
 ### Health
@@ -152,18 +182,13 @@ from app.services.roman_urdu import LanguageDetector, RomanUrduNormalizer
 detector = LanguageDetector()
 normalizer = RomanUrduNormalizer()
 
-# Detect language
 lang, confidence = detector.detect("admission ke liye kya documents chahiye?")
-# Returns: ('ur', 0.85) or ('mixed', 0.72)
+# ('ur', 0.85) or ('mixed', 0.72)
 
-# Normalize query
 normalized = normalizer.normalize("kal mein admission ke liye apply kaise karein?")
-# Returns: normalized query
 ```
 
-## Evaluation
-
-The system is evaluated on:
+## Evaluation Targets
 
 | Metric | Target |
 |--------|--------|
@@ -175,63 +200,33 @@ The system is evaluated on:
 
 ## Development
 
-### Running Tests
+### Tests
 
 ```bash
-# Backend tests
 cd backend
 pytest tests/ -v
-
-# Frontend tests
-cd frontend
-npm test
 ```
 
 ### Linting
 
 ```bash
-# Backend
 cd backend
 ruff check app/
 
-# Frontend
 cd frontend
 npm run lint
 ```
 
 ## Deployment
 
-### Backend (Railway)
+| Service | Platform |
+|---------|----------|
+| Frontend | Vercel |
+| Backend | Railway |
+| Database | Neon |
 
-```bash
-# Set environment variables in Railway dashboard
-# Deploy from GitHub repository
-```
-
-### Frontend (Vercel)
-
-```bash
-# Connect GitHub repository
-# Set API_URL environment variable
-# Deploy automatically on push
-```
-
-### Database (Neon)
-
-```bash
-# Create serverless PostgreSQL instance
-# Enable pgvector extension
-# Copy connection string to backend .env
-```
+Set `API_URL` in the Vercel environment to point to your Railway backend.
 
 ## License
 
 This project is part of a Final Year Project at the University of Karachi.
-
-## Contact
-
-For questions about this project, please contact the development team.
-
----
-
-**Note:** This chatbot provides information based on official admission documents. Always verify critical information with the University admission office.
