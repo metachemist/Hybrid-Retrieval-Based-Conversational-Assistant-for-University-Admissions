@@ -9,7 +9,7 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 ### Key Features
 
 - **Hybrid Retrieval**: Combines keyword search (BM25) with semantic vector search using Reciprocal Rank Fusion (RRF)
-- **Multilingual Support**: Handles English, Roman Urdu, and code-mixed queries
+- **Multilingual Support**: Handles English, Roman Urdu, and code-mixed query
 - **Citation-Grounded Responses**: All answers include citations to source documents
 - **LLM Fallback Chain**: Automatic failover — Gemini → Anthropic → OpenAI → Ollama
 - **Authentication**: User login, registration, and forgot/reset password flows
