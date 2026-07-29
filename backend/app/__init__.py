@@ -8,11 +8,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import sentry_sdk
 from .core.config import settings
-from .core.database import engine, Base
 from .api import chat, documents, health, auth, admin
-
-# Create database tables
-Base.metadata.create_all(bind=engine)
 
 
 def create_app() -> FastAPI:

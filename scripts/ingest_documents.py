@@ -2,7 +2,8 @@
 """
 Document Ingestion Script
 
-Processes admission PDF documents and ingests them into the database.
+Processes admission PDF and image (jpg/png) documents and ingests them into the database.
+Images are transcribed via OpenAI vision (see app/services/retrieval/image_processor.py).
 
 Usage:
     python scripts/ingest_documents.py path/to/prospectus.pdf [--title "Admission Prospectus 2024"]
@@ -21,36 +22,40 @@ import uuid
 from app.core.database import SessionLocal, engine, Base
 from app.models import Document, Chunk
 from app.services.retrieval.pdf_processor import PDFProcessor
+from app.services.retrieval.image_processor import ImageProcessor
 from app.services.retrieval.chunking import DocumentChunker
 from app.services.retrieval.embeddings import get_embedding_model
+
+IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png')
+SUPPORTED_EXTENSIONS = ('.pdf',) + IMAGE_EXTENSIONS
 
 
 def ingest_document(file_path: str, title: str = None, year: int = None) -> dict:
     """
     Ingest a single document into the database.
-    
+
     Args:
-        file_path: Path to the PDF file
+        file_path: Path to the PDF or image file
         title: Optional title override
         year: Optional year
-        
+
     Returns:
         Ingestion result dictionary
     """
     db = SessionLocal()
-    
+
     try:
         # Validate file
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
-        
-        if not file_path.lower().endswith('.pdf'):
-            raise ValueError("Only PDF files are supported")
-        
+
+        if not file_path.lower().endswith(SUPPORTED_EXTENSIONS):
+            raise ValueError("Only PDF and image (jpg/png) files are supported")
+
         print(f"Processing: {file_path}")
-        
+
         # Extract text and metadata
-        processor = PDFProcessor()
+        processor = ImageProcessor() if file_path.lower().endswith(IMAGE_EXTENSIONS) else PDFProcessor()
         full_text, metadata = processor.extract(file_path)
         
         doc_title = title or metadata.title
@@ -135,38 +140,38 @@ def ingest_document(file_path: str, title: str = None, year: int = None) -> dict
 
 def ingest_directory(dir_path: str) -> list:
     """
-    Ingest all PDFs from a directory.
-    
+    Ingest all supported documents (PDFs and images) from a directory.
+
     Args:
-        dir_path: Path to directory containing PDFs
-        
+        dir_path: Path to directory containing documents
+
     Returns:
         List of ingestion results
     """
     results = []
-    
+
     if not os.path.isdir(dir_path):
         raise NotADirectoryError(f"Directory not found: {dir_path}")
-    
-    pdf_files = [f for f in os.listdir(dir_path) if f.lower().endswith('.pdf')]
-    
-    if not pdf_files:
-        print(f"No PDF files found in {dir_path}")
+
+    files = sorted(f for f in os.listdir(dir_path) if f.lower().endswith(SUPPORTED_EXTENSIONS))
+
+    if not files:
+        print(f"No supported files found in {dir_path}")
         return results
-    
-    print(f"Found {len(pdf_files)} PDF files")
-    
-    for filename in pdf_files:
+
+    print(f"Found {len(files)} files")
+
+    for filename in files:
         file_path = os.path.join(dir_path, filename)
         result = ingest_document(file_path)
         results.append(result)
-    
+
     return results
 
 
 def main():
     parser = argparse.ArgumentParser(description="Ingest admission documents into the database")
-    parser.add_argument("path", help="Path to PDF file or directory")
+    parser.add_argument("path", help="Path to a PDF/image file or a directory of them")
     parser.add_argument("--title", help="Override document title")
     parser.add_argument("--year", type=int, help="Override document year")
     

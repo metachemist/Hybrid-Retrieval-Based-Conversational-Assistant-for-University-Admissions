@@ -3,9 +3,10 @@ LLM Provider Module
 
 Provides unified interface for multiple LLM providers with automatic fallback.
 Supports:
-- Anthropic Claude (primary)
-- OpenAI GPT-3.5-turbo (fallback 1)
-- Ollama local models (fallback 2)
+- OpenAI GPT (primary — paid key, most reliable for production traffic)
+- Gemini (fallback 1 — free tier, stricter rate limits)
+- Anthropic Claude (fallback 2)
+- Ollama local models (fallback 3)
 """
 import asyncio
 from typing import Optional, List, Dict, AsyncGenerator
@@ -73,7 +74,11 @@ class GeminiProvider(LLMProviderBase):
     def _get_client(self):
         if self._client is None:
             from google import genai
-            self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            from google.genai import types
+            self._client = genai.Client(
+                api_key=settings.GEMINI_API_KEY,
+                http_options=types.HttpOptions(timeout=30_000),
+            )
         return self._client
 
     async def generate(
@@ -194,7 +199,7 @@ class OpenAIProvider(LLMProviderBase):
     def _get_client(self):
         if self._client is None:
             import openai
-            self._client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+            self._client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY, timeout=30.0)
         return self._client
     
     async def generate(
@@ -207,7 +212,7 @@ class OpenAIProvider(LLMProviderBase):
         client = self._get_client()
         
         response = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
@@ -228,7 +233,7 @@ class OpenAIProvider(LLMProviderBase):
         client = self._get_client()
         
         stream = await client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
@@ -313,18 +318,19 @@ class OllamaProvider(LLMProviderBase):
 class LLMProvider:
     """
     Unified LLM provider with automatic fallback.
-    
+
     Tries providers in order:
-    1. Anthropic (primary)
-    2. OpenAI (fallback 1)
-    3. Ollama (fallback 2, local)
+    1. OpenAI (primary — paid key, not subject to free-tier rate limits)
+    2. Gemini (fallback 1, free tier)
+    3. Anthropic (fallback 2)
+    4. Ollama (fallback 3, local)
     """
-    
+
     def __init__(self):
         self.providers: List[LLMProviderBase] = [
-            GeminiProvider(),       # free tier — primary
-            AnthropicProvider(),    # fallback 1
-            OpenAIProvider(),       # fallback 2
+            OpenAIProvider(),       # paid — primary
+            GeminiProvider(),       # fallback 1 (free tier)
+            AnthropicProvider(),    # fallback 2
             OllamaProvider(),       # fallback 3 (local)
         ]
         self._failure_counts: Dict[str, int] = {p.name: 0 for p in self.providers}

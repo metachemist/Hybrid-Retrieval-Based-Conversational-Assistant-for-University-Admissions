@@ -13,6 +13,10 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# gemini-embedding-001 defaults to 3072-dim; truncated via Matryoshka
+# representation learning to match the chunks.embedding column (vector(768)).
+GEMINI_EMBEDDING_DIMENSION = 768
+
 
 class EmbeddingModel:
     """Embedding wrapper — uses Gemini if available, falls back to OpenAI."""
@@ -31,13 +35,17 @@ class EmbeddingModel:
     def _get_gemini_client(self):
         if self._gemini_client is None:
             from google import genai
-            self._gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            from google.genai import types
+            self._gemini_client = genai.Client(
+                api_key=settings.GEMINI_API_KEY,
+                http_options=types.HttpOptions(timeout=30_000),
+            )
         return self._gemini_client
 
     def _get_openai_client(self):
         if self._openai_client is None:
             from openai import OpenAI
-            self._openai_client = OpenAI(api_key=settings.OPENAI_API_KEY or "")
+            self._openai_client = OpenAI(api_key=settings.OPENAI_API_KEY or "", timeout=30.0)
         return self._openai_client
 
     # ------------------------------------------------------------------
@@ -45,40 +53,61 @@ class EmbeddingModel:
     # ------------------------------------------------------------------
 
     def _gemini_embed_batch(self, texts: List[str]) -> List[List[float]]:
+        from google.genai import types, errors
         client = self._get_gemini_client()
         results = []
         for text in texts:
-            resp = client.models.embed_content(
-                model="gemini-embedding-001",
-                contents=text,
-            )
-            results.append(resp.embeddings[0].values)
+            try:
+                resp = client.models.embed_content(
+                    model="gemini-embedding-001",
+                    contents=text,
+                    config=types.EmbedContentConfig(output_dimensionality=GEMINI_EMBEDDING_DIMENSION),
+                )
+                results.append(resp.embeddings[0].values)
+            except errors.ClientError as e:
+                if e.code != 429:
+                    raise
+                logger.warning("Gemini quota exhausted, falling back to OpenAI for this embedding")
+                results.append(self._openai_embed_one(text, dimensions=GEMINI_EMBEDDING_DIMENSION))
         return results
 
     def _gemini_embed_one(self, text: str) -> List[float]:
+        from google.genai import types, errors
         client = self._get_gemini_client()
-        resp = client.models.embed_content(
-            model="gemini-embedding-001",
-            contents=text,
-        )
-        return resp.embeddings[0].values
+        try:
+            resp = client.models.embed_content(
+                model="gemini-embedding-001",
+                contents=text,
+                config=types.EmbedContentConfig(output_dimensionality=GEMINI_EMBEDDING_DIMENSION),
+            )
+            return resp.embeddings[0].values
+        except errors.ClientError as e:
+            if e.code != 429:
+                raise
+            logger.warning("Gemini quota exhausted, falling back to OpenAI for this embedding")
+            return self._openai_embed_one(text, dimensions=GEMINI_EMBEDDING_DIMENSION)
 
     # ------------------------------------------------------------------
-    # OpenAI embeddings (text-embedding-3-small, 1536-dim)
+    # OpenAI embeddings (text-embedding-3-small, 1536-dim; also used as a
+    # same-dimension fallback when Gemini's quota is exhausted)
     # ------------------------------------------------------------------
 
-    def _openai_embed_batch(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
+    def _openai_embed_batch(
+        self, texts: List[str], batch_size: int = 32, dimensions: Optional[int] = None
+    ) -> List[List[float]]:
         client = self._get_openai_client()
         all_embeddings = []
+        kwargs = {"dimensions": dimensions} if dimensions else {}
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i + batch_size]
-            resp = client.embeddings.create(model=settings.EMBEDDING_MODEL, input=batch)
+            resp = client.embeddings.create(model=settings.EMBEDDING_MODEL, input=batch, **kwargs)
             all_embeddings.extend([item.embedding for item in resp.data])
         return all_embeddings
 
-    def _openai_embed_one(self, text: str) -> List[float]:
+    def _openai_embed_one(self, text: str, dimensions: Optional[int] = None) -> List[float]:
         client = self._get_openai_client()
-        resp = client.embeddings.create(model=settings.EMBEDDING_MODEL, input=text)
+        kwargs = {"dimensions": dimensions} if dimensions else {}
+        resp = client.embeddings.create(model=settings.EMBEDDING_MODEL, input=text, **kwargs)
         return resp.data[0].embedding
 
     # ------------------------------------------------------------------
@@ -108,7 +137,7 @@ class EmbeddingModel:
     def get_dimension(self) -> int:
         """Return the embedding dimension for the active provider."""
         if self._use_gemini():
-            return 768
+            return GEMINI_EMBEDDING_DIMENSION
         return settings.EMBEDDING_DIMENSION
 
 

@@ -27,7 +27,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     """Request model for chat endpoint."""
     query: str
-    top_k: Optional[int] = 10
+    top_k: Optional[int] = 25
     use_hybrid: Optional[bool] = True
     stream: Optional[bool] = False
 
@@ -130,7 +130,7 @@ async def chat(
         query=query,
         chunks=chunks,
         documents=documents,
-        max_chunks=5
+        max_chunks=10
     )
     
     # Step 6: Generate response using LLM

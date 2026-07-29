@@ -2,9 +2,10 @@
  * API Client for the Admission Chatbot Backend
  */
 
-// In production (Vercel experimentalServices), backend is proxied at /_/backend
-// For local dev, set NEXT_PUBLIC_API_URL=http://localhost:8000 in frontend/.env.local
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/_/backend'
+// Backend runs on Railway. Set NEXT_PUBLIC_API_URL to the Railway backend URL
+// in the Vercel project settings. For local dev, set it in frontend/.env.local
+// (see .env.local.example).
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export interface ChatRequest {
   query: string

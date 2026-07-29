@@ -1,43 +1,42 @@
-# Evaluation Dataset for Admission Chatbot
-# Format: query,expected_language,expected_topics,notes
-
-# English Queries
-What are the eligibility criteria for undergraduate admission?,en,eligibility,
-When is the last date for form submission?,en,deadline,
-What documents are required for admission?,en,documents,
-How much is the admission fee?,en,fee,
-What is the merit criteria for BS Computer Science?,en,merit,program,
-Can I apply with O-Level qualifications?,en,eligibility,qualifications,
-What is the reservation policy for sports quota?,en,reservation,policy,
-How do I check my admission status?,en,process,
-Is there an entry test for admission?,en,test,
-What are the scholarships available?,en,scholarship,
-
-# Roman Urdu Queries
-admission ke liye kya documents chahiye?,ur,documents,
-form submit karne ki last date kya hai?,ur,deadline,
-admission lene ke liye kya eligibility hai?,ur,eligibility,
-fee kitni hai admission ki?,ur,fee,
-CS program mein merit kya hai?,ur,merit,program,
-kya main O-Level se apply kar sakta hoon?,ur,eligibility,qualifications,
-sports quota mein kya reservation hai?,ur,reservation,policy,
-admission status kaise check karein?,ur,process,
-kya entry test dena zaroori hai?,ur,test,
-scholarships kaise milegi?,ur,scholarship,
-
-# Code-Mixed Queries
-admission ke liye what documents are needed?,mixed,documents,
-last date for form submission kya hai?,mixed,deadline,
-eligibility criteria batao undergraduate ke liye,mixed,eligibility,
-fee structure kya hai for BS programs?,mixed,fee,
-merit list kab aayegi?,mixed,merit,
-kya O-Level se eligible hoon main?,mixed,eligibility,qualifications,
-reservation policy for sports quota explain karo,mixed,reservation,policy,
-how to check admission status online?,mixed,process,
-entry test ka pattern kya hai?,mixed,test,
-scholarships ke liye kaise apply karein?,mixed,scholarship,
-
-# Edge Cases
-kuch nahi,en,general,empty query test
-asdfgh,en,general,gibberish test
-,,,empty test
+query,expected_language,expected_topic,relevant_documents,notes
+What are the eligibility criteria for undergraduate admission?,en,eligibility,morningpro2026;eveningpro2026;self-fee-schedule;1ST-YEAR-SELF-FINANCED-2026,
+When is the last date for form submission?,en,deadlines,adschedule2026;admissionformsubguideline2026,
+What documents are required for admission?,en,documents,morningpro2026;eveningpro2026;admissionformsubguideline2026,
+How much is the admission fee?,en,fees,feesguideline2026;self-fee-schedule;1ST-YEAR-SELF-FINANCED-2026;morningpro2026,
+What is the merit criteria for BS Computer Science?,en,merit,self-fee-schedule,merit/closing-percentage lists are out of scope (excluded from corpus); only baseline eligibility % is available
+Can I apply with O-Level qualifications?,en,eligibility,morningpro2026;eveningpro2026;self-fee-schedule,
+What is the reservation policy for sports quota?,en,application,reservedseatadmission2026;morningpro2026;eveningpro2026,
+How do I check my admission status?,en,application,portal-creation;morningpro2026;eveningpro2026,
+Is there an entry test for admission?,en,merit,entry-test-guidelines2026eng;entry-test-guidelines2026;morningpro2026;eveningpro2026,
+What are the scholarships available?,en,fees,zakatscheve2026;PEF Scholarship Program FY 2026;NCM Zakat Scholarship Program with Affidavits;morningpro2026,
+admission ke liye kya documents chahiye?,ur,documents,morningpro2026;eveningpro2026;admissionformsubguideline2026,
+form submit karne ki last date kya hai?,ur,deadlines,adschedule2026;admissionformsubguideline2026,
+admission lene ke liye kya eligibility hai?,ur,eligibility,morningpro2026;eveningpro2026;self-fee-schedule;1ST-YEAR-SELF-FINANCED-2026,
+fee kitni hai admission ki?,ur,fees,feesguideline2026;self-fee-schedule;1ST-YEAR-SELF-FINANCED-2026;morningpro2026,
+CS program mein merit kya hai?,ur,merit,self-fee-schedule,merit/closing-percentage lists are out of scope (excluded from corpus)
+kya main O-Level se apply kar sakta hoon?,ur,eligibility,morningpro2026;eveningpro2026;self-fee-schedule,
+sports quota mein kya reservation hai?,ur,application,reservedseatadmission2026;morningpro2026;eveningpro2026,
+admission status kaise check karein?,ur,application,portal-creation;morningpro2026;eveningpro2026,
+kya entry test dena zaroori hai?,ur,merit,entry-test-guidelines2026eng;entry-test-guidelines2026;morningpro2026;eveningpro2026,
+scholarships kaise milegi?,ur,fees,zakatscheve2026;PEF Scholarship Program FY 2026;NCM Zakat Scholarship Program with Affidavits;morningpro2026,
+admission ke liye what documents are needed?,mixed,documents,morningpro2026;eveningpro2026;admissionformsubguideline2026,
+last date for form submission kya hai?,mixed,deadlines,adschedule2026;admissionformsubguideline2026,
+eligibility criteria batao undergraduate ke liye,mixed,eligibility,morningpro2026;eveningpro2026;self-fee-schedule;1ST-YEAR-SELF-FINANCED-2026,
+fee structure kya hai for BS programs?,mixed,fees,feesguideline2026;self-fee-schedule;1ST-YEAR-SELF-FINANCED-2026;morningpro2026,
+merit list kab aayegi?,mixed,merit,,merit lists are out of scope (excluded from corpus); expected behavior is graceful decline, not retrieval
+kya O-Level se eligible hoon main?,mixed,eligibility,morningpro2026;eveningpro2026;self-fee-schedule,
+reservation policy for sports quota explain karo,mixed,application,reservedseatadmission2026;morningpro2026;eveningpro2026,
+how to check admission status online?,mixed,application,portal-creation;morningpro2026;eveningpro2026,
+entry test ka pattern kya hai?,mixed,merit,entry-test-guidelines2026eng;entry-test-guidelines2026;morningpro2026;eveningpro2026,
+scholarships ke liye kaise apply karein?,mixed,fees,zakatscheve2026;PEF Scholarship Program FY 2026;NCM Zakat Scholarship Program with Affidavits;morningpro2026,
+what are the requirements for taking admission in computer science department,en,eligibility,self-fee-schedule;1ST-YEAR-SELF-FINANCED-2026;morningpro2026,found via manual testing this session
+when will the entry test be held,en,deadlines,adschedule2026,found via manual testing this session - retrieval currently fails (chunk ranks ~16th)
+what is the last date to submit admission form,en,deadlines,adschedule2026;admissionformsubguideline2026,found via manual testing this session - retrieval currently fails
+what is the zakat scholarship eligibility,en,fees,zakatscheve2026,found via manual testing this session - answered correctly
+how can I apply for a scholarship,en,fees,zakatscheve2026;PEF Scholarship Program FY 2026;NCM Zakat Scholarship Program with Affidavits;morningpro2026,found via manual testing this session - answered correctly
+self finance fee for computer science department,en,fees,1ST-YEAR-SELF-FINANCED-2026,found via manual testing this session - source of the 2025-vs-2026 fee conflict bug
+what documents are needed for admission form submission,en,documents,admissionformsubguideline2026;morningpro2026;eveningpro2026,
+kya reserved seats ke liye alag policy hai,ur,application,reservedseatadmission2026,
+girls hostel ki facility available hai kya,mixed,application,girlshos,
+kuch nahi,en,general,,empty query test - expected graceful decline, no retrieval recall expected
+asdfgh,en,general,,gibberish test - expected graceful decline, no retrieval recall expected
