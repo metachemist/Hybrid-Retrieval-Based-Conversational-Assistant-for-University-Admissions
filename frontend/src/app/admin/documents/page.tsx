@@ -41,7 +41,7 @@ export default function DocumentsPage() {
     setUploadMsg(null)
     try {
       const result = await api.uploadDocument(file, title || undefined, year ? parseInt(year) : undefined)
-      setUploadMsg(`✓ Uploaded "${result.title}" — ${result.chunks_created} chunks created`)
+      setUploadMsg(`✓ Uploaded "${result.title}" (${result.chunks_created} chunks created)`)
       setTitle('')
       setYear('')
       if (fileRef.current) fileRef.current.value = ''
@@ -85,13 +85,13 @@ export default function DocumentsPage() {
 
   return (
     <div className="p-8 space-y-7">
-      <div>
-        <h1 className="font-serif-display text-2xl text-slate-900">Documents</h1>
+      <div className="animate-in-down">
+        <h1 className="font-display font-bold text-2xl text-slate-900">Documents</h1>
         <p className="text-sm text-slate-500 mt-0.5">Upload and manage admission policy PDFs</p>
       </div>
 
       {/* ── Upload form ─────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in-up stagger-1">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
           <div className="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
             <Upload className="w-4 h-4 text-primary-600" />
@@ -150,8 +150,9 @@ export default function DocumentsPage() {
             type="submit"
             disabled={uploading}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800
-                       text-white rounded-xl text-sm font-semibold
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                       text-white rounded-full text-sm font-semibold
+                       disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm
+                       hover:scale-[1.02] active:scale-[0.98]"
           >
             {uploading
               ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -162,7 +163,7 @@ export default function DocumentsPage() {
       </div>
 
       {/* ── Document list ───────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in-up stagger-2">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-slate-800">Ingested Documents</h2>
@@ -170,7 +171,8 @@ export default function DocumentsPage() {
           </div>
           <button
             onClick={fetchDocs}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg
+                       transition-all hover:scale-110 active:scale-90"
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4" />
@@ -217,7 +219,7 @@ export default function DocumentsPage() {
                   <td className="px-3 py-3.5">
                     {doc.year
                       ? <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">{doc.year}</span>
-                      : <span className="text-slate-400">—</span>}
+                      : <span className="text-slate-400">-</span>}
                   </td>
                   <td className="px-3 py-3.5">
                     <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full text-xs font-semibold">
@@ -235,7 +237,7 @@ export default function DocumentsPage() {
                         onClick={() => handleReindex(doc.id)}
                         disabled={reindexing === doc.id}
                         className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50
-                                   rounded-lg transition-colors disabled:opacity-40"
+                                   rounded-lg transition-all hover:scale-110 active:scale-90 disabled:opacity-40"
                         title="Re-index"
                       >
                         {reindexing === doc.id
@@ -246,7 +248,7 @@ export default function DocumentsPage() {
                         onClick={() => handleDelete(doc.id, doc.title)}
                         disabled={deleting === doc.id}
                         className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50
-                                   rounded-lg transition-colors disabled:opacity-40"
+                                   rounded-lg transition-all hover:scale-110 active:scale-90 disabled:opacity-40"
                         title="Delete"
                       >
                         {deleting === doc.id

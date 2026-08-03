@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import ChatMessage from '@/components/ChatMessage'
 import ChatInput from '@/components/ChatInput'
 import TypingIndicator from '@/components/TypingIndicator'
@@ -38,6 +39,7 @@ const SUGGESTIONS = [
 
 export default function Home() {
   const { user, logout } = useAuth()
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -89,12 +91,16 @@ export default function Home() {
     <main className="flex flex-col h-screen bg-slate-50 overflow-hidden">
 
       {/* ── Header ──────────────────────────────────────── */}
-      <header className="flex-shrink-0 bg-slate-900 text-white">
-        <div className="max-w-4xl mx-auto px-5 py-3.5 flex items-center justify-between">
+      <header className="flex-shrink-0 bg-slate-50 px-3 pt-3 animate-in-down">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4
+                        rounded-full bg-slate-900 text-white px-5 py-2.5 shadow-lg
+                        border border-white/5">
           {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-inner">
-              <GraduationCap className="w-4.5 h-4.5 text-white" strokeWidth={2} />
+          <div className="flex items-center gap-3 group">
+            <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10
+                            flex items-center justify-center transition-transform duration-300
+                            group-hover:rotate-12 group-hover:scale-110">
+              <GraduationCap className="w-4.5 h-4.5 text-primary-400" strokeWidth={2} />
             </div>
             <div>
               <p className="text-sm font-semibold leading-none text-white">Admission Assistant</p>
@@ -107,8 +113,9 @@ export default function Home() {
             {user?.role === 'admin' && (
               <Link
                 href="/admin"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+                           text-slate-300 hover:text-white hover:bg-white/5 transition-all
+                           hover:scale-105 active:scale-95"
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
                 Dashboard
@@ -116,10 +123,14 @@ export default function Home() {
             )}
             {user ? (
               <button
-                onClick={logout}
+                onClick={() => {
+                  logout()
+                  router.push('/login')
+                }}
                 title={`Signed in as ${user.email}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+                           text-slate-300 hover:text-white hover:bg-white/5 transition-all
+                           hover:scale-105 active:scale-95"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 Sign out
@@ -127,8 +138,9 @@ export default function Home() {
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           bg-primary-600 hover:bg-primary-500 text-white transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold
+                           bg-primary-300 hover:bg-primary-200 text-slate-900 transition-all
+                           hover:scale-105 active:scale-95 shadow-sm"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 Sign in
@@ -142,41 +154,50 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           /* Empty state */
-          <div className="dot-grid h-full flex items-center justify-center px-4">
-            <div className="text-center max-w-lg">
-              {/* Icon */}
-              <div className="relative inline-flex mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-md
-                                flex items-center justify-center">
-                  <Sparkles className="w-7 h-7 text-primary-600" />
+          <div className="dot-grid h-full flex items-center justify-center px-4 py-8">
+            <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl
+                            bg-slate-950 border border-white/5 shadow-xl
+                            px-8 py-14 text-center">
+              {/* Decorative gradient blob */}
+              <div className="gradient-blob absolute inset-0 pointer-events-none" />
+
+              <div className="relative z-10 max-w-lg mx-auto">
+                {/* Icon */}
+                <div className="relative inline-flex mb-6 animate-in-pop">
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 backdrop-blur
+                                  flex items-center justify-center animate-float">
+                    <Sparkles className="w-7 h-7 text-primary-400" />
+                  </div>
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary-400
+                                   border-2 border-slate-950 animate-pulse" />
                 </div>
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-400
-                                 border-2 border-white" />
-              </div>
 
-              {/* Heading */}
-              <h2 className="font-serif-display text-3xl text-slate-900 mb-2">
-                Ask me anything
-              </h2>
-              <p className="text-sm text-slate-500 mb-8 leading-relaxed">
-                I have access to official University of Karachi admission documents.
-                Try asking about eligibility, fees, deadlines, or required materials.
-              </p>
+                {/* Heading */}
+                <h2 className="font-display font-bold text-5xl sm:text-6xl mb-3
+                               gradient-text animate-in-up stagger-1">
+                  Ask me anything
+                </h2>
+                <p className="text-sm text-slate-400 mb-8 leading-relaxed animate-in-up stagger-2">
+                  I have access to official University of Karachi admission documents.
+                  Try asking about eligibility, fees, deadlines, or required materials.
+                </p>
 
-              {/* Suggestion chips */}
-              <div className="flex flex-wrap gap-2 justify-center">
-                {SUGGESTIONS.map((q, i) => (
-                  <button
-                    key={i}
-                    onClick={() => sendMessage(q)}
-                    className="px-4 py-2 bg-white border border-slate-200 text-slate-700
-                               rounded-full text-xs font-medium hover:border-primary-400
-                               hover:text-primary-700 hover:bg-primary-50
-                               shadow-sm transition-all duration-150"
-                  >
-                    {q}
-                  </button>
-                ))}
+                {/* Suggestion chips */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {SUGGESTIONS.map((q, i) => (
+                    <button
+                      key={i}
+                      onClick={() => sendMessage(q)}
+                      style={{ animationDelay: `${0.3 + i * 0.08}s` }}
+                      className="animate-in-up px-4 py-2 bg-white/5 border border-white/10 text-slate-200
+                                 rounded-full text-xs font-medium hover:border-primary-300
+                                 hover:text-slate-900 hover:bg-primary-300
+                                 transition-all duration-150 hover:scale-105 active:scale-95"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

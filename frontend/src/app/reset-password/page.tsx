@@ -34,9 +34,7 @@ function ResetPasswordForm() {
       await api.resetPassword(token, password)
       setDone(true)
     } catch (err: any) {
-      const msg: string = err.message || ''
-      if (msg.includes('400')) setError('This reset link is invalid or has expired.')
-      else setError(msg)
+      setError(err.status === 400 ? 'This reset link is invalid or has expired.' : (err.message || 'Something went wrong.'))
     } finally {
       setSubmitting(false)
     }
@@ -48,7 +46,7 @@ function ResetPasswordForm() {
                       transition-shadow`
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full max-w-sm animate-in-up">
       {/* Mobile logo */}
       <div className="lg:hidden flex items-center gap-2.5 mb-8">
         <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
@@ -64,16 +62,16 @@ function ResetPasswordForm() {
         /* Success */
         <div className="text-center">
           <div className="w-14 h-14 bg-emerald-50 border border-emerald-200 rounded-2xl
-                          flex items-center justify-center mx-auto mb-5">
+                          flex items-center justify-center mx-auto mb-5 animate-in-pop">
             <CheckCircle className="w-7 h-7 text-emerald-600" />
           </div>
-          <h2 className="font-serif-display text-2xl text-slate-900 mb-2">Password updated</h2>
+          <h2 className="font-display font-bold text-2xl text-slate-900 mb-2">Password updated</h2>
           <p className="text-sm text-slate-500 mb-8">
             Your password has been reset successfully. You can now sign in.
           </p>
           <Link href="/login"
             className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-slate-900 hover:bg-slate-800
-                       text-white rounded-xl text-sm font-semibold transition-colors">
+                       text-white rounded-full text-sm font-semibold transition-colors">
             Go to Sign in
             <ArrowRight className="w-4 h-4" />
           </Link>
@@ -82,10 +80,10 @@ function ResetPasswordForm() {
         /* No token */
         <div className="text-center">
           <div className="w-14 h-14 bg-amber-50 border border-amber-200 rounded-2xl
-                          flex items-center justify-center mx-auto mb-5">
+                          flex items-center justify-center mx-auto mb-5 animate-in-pop">
             <AlertCircle className="w-7 h-7 text-amber-600" />
           </div>
-          <h2 className="font-serif-display text-2xl text-slate-900 mb-2">Invalid link</h2>
+          <h2 className="font-display font-bold text-2xl text-slate-900 mb-2">Invalid link</h2>
           <p className="text-sm text-slate-500 mb-6">
             This password reset link is missing a token. Please request a new one.
           </p>
@@ -97,7 +95,7 @@ function ResetPasswordForm() {
       ) : (
         /* Form */
         <>
-          <h2 className="font-serif-display text-3xl text-slate-900 mb-1">Set new password</h2>
+          <h2 className="font-display font-bold text-3xl text-slate-900 mb-1">Set new password</h2>
           <p className="text-sm text-slate-500 mb-8">Must be at least 8 characters.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -128,9 +126,10 @@ function ResetPasswordForm() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-xl
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-full
                          text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed
-                         flex items-center justify-center gap-2 transition-colors"
+                         flex items-center justify-center gap-2 transition-all
+                         hover:scale-[1.02] active:scale-[0.98]"
             >
               {submitting ? (
                 <>
@@ -163,28 +162,29 @@ export default function ResetPasswordPage() {
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-5/12 bg-slate-950 flex-col items-center justify-center
                       relative overflow-hidden p-12 select-none">
+        <div className="gradient-blob absolute inset-0 pointer-events-none" />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {[480, 360, 260, 170, 90].map((size, i) => (
             <div key={i} className="absolute rounded-full border border-white/[0.04]"
               style={{ width: size, height: size }} />
           ))}
-          <div className="absolute w-32 h-32 rounded-full border border-amber-400/20" />
+          <div className="absolute w-32 h-32 rounded-full border border-primary-400/20" />
         </div>
         <div className="relative z-10 text-center">
           <div className="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center
-                          justify-center mx-auto mb-8 border border-white/10">
+                          justify-center mx-auto mb-8 border border-white/10 animate-float">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="font-serif-display text-4xl text-white leading-tight mb-4">
+          <h1 className="font-display font-bold text-6xl gradient-text leading-tight mb-4 animate-in-up">
             Secure your<br />account
           </h1>
-          <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto">
+          <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto animate-in-up stagger-1">
             Choose a strong password that you haven&apos;t used before.
           </p>
         </div>
       </div>
 
-      {/* Right panel — Suspense needed for useSearchParams */}
+      {/* Right panel (needs Suspense for useSearchParams) */}
       <div className="flex-1 flex items-center justify-center bg-white px-8 py-12">
         <Suspense fallback={<div className="text-sm text-slate-400">Loading…</div>}>
           <ResetPasswordForm />

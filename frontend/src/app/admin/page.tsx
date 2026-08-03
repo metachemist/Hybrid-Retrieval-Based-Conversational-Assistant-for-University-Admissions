@@ -53,9 +53,9 @@ export default function AdminDashboard() {
     <div className="p-8 space-y-7 min-h-full">
 
       {/* ── Page header ─────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-in-down">
         <div>
-          <h1 className="font-serif-display text-2xl text-slate-900">Analytics Dashboard</h1>
+          <h1 className="font-display font-bold text-2xl text-slate-900">Analytics Dashboard</h1>
           <p className="text-sm text-slate-500 mt-0.5">Chatbot usage insights</p>
         </div>
 
@@ -98,22 +98,22 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             label="Total Queries"
-            value={overview?.total_queries?.toLocaleString() ?? '—'}
+            value={overview?.total_queries?.toLocaleString() ?? '-'}
             sub={`Last ${days} days`}
           />
           <KpiCard
             label="Avg Response Time"
-            value={overview ? `${Math.round(overview.avg_latency_ms)} ms` : '—'}
+            value={overview ? `${Math.round(overview.avg_latency_ms)} ms` : '-'}
             sub="End-to-end latency"
           />
           <KpiCard
             label="Cache Hit Rate"
-            value={overview ? `${overview.cache_hit_rate_pct.toFixed(1)}%` : '—'}
+            value={overview ? `${overview.cache_hit_rate_pct.toFixed(1)}%` : '-'}
             sub="Responses from cache"
           />
           <KpiCard
             label="Success Rate"
-            value={overview ? `${overview.success_rate_pct.toFixed(1)}%` : '—'}
+            value={overview ? `${overview.success_rate_pct.toFixed(1)}%` : '-'}
             sub="Answered from documents"
           />
         </div>

@@ -30,12 +30,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex min-h-screen bg-slate-50">
 
       {/* ── Sidebar ─────────────────────────────────────── */}
-      <aside className="w-60 bg-slate-950 flex flex-col flex-shrink-0">
+      <aside className="w-60 bg-slate-950 flex flex-col flex-shrink-0 animate-in-down">
 
         {/* Logo */}
         <div className="px-5 py-5 border-b border-white/5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center shadow-inner">
+          <div className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center shadow-inner
+                            transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110">
               <GraduationCap className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -50,23 +51,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className="px-3 mb-2 text-[10px] font-semibold text-slate-600 uppercase tracking-widest">
             Navigation
           </p>
-          {navItems.map(({ href, label, icon: Icon }) => {
+          {navItems.map(({ href, label, icon: Icon }, i) => {
             const active = pathname === href
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium
-                            transition-colors ${
+                style={{ animationDelay: `${i * 0.06}s` }}
+                className={`animate-in-up flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium
+                            transition-all hover:scale-[1.02] active:scale-[0.98] ${
                   active
                     ? 'bg-white/10 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-amber-400' : ''}`} />
+                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-primary-400' : ''}`} />
                 {label}
                 {active && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />
                 )}
               </Link>
             )
@@ -78,15 +80,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link
             href="/"
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                       text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
+                       text-slate-500 hover:text-white hover:bg-white/5 transition-all
+                       hover:scale-[1.02] active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Chatbot
           </Link>
           <button
-            onClick={logout}
+            onClick={() => {
+              logout()
+              router.push('/login')
+            }}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                       text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
+                       text-slate-500 hover:text-white hover:bg-white/5 transition-all
+                       hover:scale-[1.02] active:scale-[0.98]"
           >
             <LogOut className="w-4 h-4" />
             Sign out

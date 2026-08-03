@@ -103,7 +103,8 @@ class DocumentChunker:
         table_runs = self._detect_table_runs(lines)
 
         if not table_runs:
-            return self._chunk_prose(text, section_header, page_start, page_end, chunk_type)
+            chunks = self._chunk_prose(text, section_header, page_start, page_end, chunk_type)
+            return self._prepend_section_context(chunks, section_header)
 
         chunks = []
         cursor = 0
@@ -126,6 +127,23 @@ class DocumentChunker:
                     tail_text, section_header, page_start, page_end, chunk_type, len(chunks)
                 ))
 
+        return self._prepend_section_context(chunks, section_header)
+
+    def _prepend_section_context(self, chunks: List[Chunk], section_header: str) -> List[Chunk]:
+        """
+        Prepend the section header into each chunk's actual content (not just
+        its metadata), so a chunk deep inside a section - e.g. a faculty
+        roster with no department name anywhere in its own text, because that
+        only appeared in the section's opening paragraph - is still findable
+        by keyword/semantic search and self-describing to the LLM. Metadata
+        alone doesn't help: retrieval only searches/embeds `content`.
+        """
+        header = (section_header or "").strip()
+        if not header or header.lower() in ("general", "n/a"):
+            return chunks
+        for chunk in chunks:
+            if header not in chunk.content:
+                chunk.content = f"{header}\n\n{chunk.content}"
         return chunks
 
     def _detect_table_runs(self, lines: List[str]):

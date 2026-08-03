@@ -41,13 +41,17 @@ class PDFProcessor:
     - Noise removal (headers, footers, page numbers)
     """
     
-    # Patterns for detecting section headers
+    # Patterns for detecting section headers, in priority order (see
+    # _detect_section_header - a pattern earlier in this list wins even if it
+    # matches a later line, so specific headers must precede generic ones).
     HEADER_PATTERNS = [
         r'^CHAPTER\s+\d+',
         r'^SECTION\s+\d+',
+        r'^(?:The\s+)?Department\s+of\s+',  # department profile pages, e.g.
+                                              # "The Department of Computer Science (UBIT) is..."
+        r'^(?:The\s+)?(?:Institute|Faculty|School|Centre|Center)\s+of\s+',
         r'^\d+\.\s+[A-Z]',  # "1. Introduction"
         r'^\d+\.\d+\s+[A-Z]',  # "1.1 Subsection"
-        r'^[A-Z][A-Z\s]+$',  # All caps headers
         r'^ELIGIBILITY',
         r'^ADMISSION',
         r'^REQUIREMENTS',
@@ -55,6 +59,10 @@ class PDFProcessor:
         r'^FEE',
         r'^PROGRAM',
         r'^COURSE',
+        r'^[A-Z][A-Z\s]+$',  # All caps headers (generic faculty-name running
+                              # headers etc.) - checked last since it's the
+                              # broadest pattern and would otherwise shadow
+                              # more specific matches above.
     ]
     
     # Patterns for noise to remove
@@ -227,15 +235,23 @@ class PDFProcessor:
         return "\n".join(cleaned_lines)
     
     def _detect_section_header(self, text: str) -> Optional[str]:
-        """Detect if text contains a section header."""
-        lines = text.split("\n")
-        
-        for line in lines[:5]:  # Check first 5 lines
-            line = line.strip()
-            for pattern in self.header_regex:
+        """
+        Detect if text contains a section header.
+
+        Checks patterns in priority order across all candidate lines (rather
+        than line order) so a specific match - e.g. "Department of Computer
+        Science (UBIT)" - wins over a generic one - e.g. an all-caps faculty
+        name like "SCIENCE" that repeats as a running header across every
+        page in that faculty, and would otherwise match first simply by
+        appearing on an earlier line.
+        """
+        lines = [line.strip() for line in text.split("\n")[:5]]
+
+        for pattern in self.header_regex:
+            for line in lines:
                 if pattern.match(line):
                     return line
-        
+
         return None
     
     def extract_tables(self, file_path: str) -> List[Dict]:

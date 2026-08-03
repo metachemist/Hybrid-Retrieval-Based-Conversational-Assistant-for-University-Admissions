@@ -4,6 +4,7 @@ Hybrid Retrieval Engine
 Combines keyword-based (BM25-style) and semantic vector search
 using Reciprocal Rank Fusion (RRF) for optimal retrieval.
 """
+import itertools
 import re
 from typing import List, Tuple, Dict, Optional
 from sqlalchemy import text, func
@@ -11,6 +12,22 @@ from sqlalchemy.orm import Session
 
 from app.models import Chunk, Document
 from .embeddings import get_embedding_model
+
+# Phrases signalling the query wants a count/enumeration across a whole
+# topic ("how many teachers", "list all departments") rather than a single
+# fact. These need many more chunks than the usual top-5/10, since the
+# answer is scattered across a document instead of living in one place.
+AGGREGATION_PATTERNS = re.compile(
+    r'\bhow many\b|\blist all\b|\blist every\b|\ball the (departments|programs|'
+    r'programmes|teachers|faculty|professors|scholarships)\b|\bwhat are all\b|'
+    r'\btotal number of\b|\bnames? of all\b|\benumerate\b',
+    re.IGNORECASE
+)
+
+
+def is_aggregation_query(query: str) -> bool:
+    """Detect count/enumeration questions that need broad, not top-k, retrieval."""
+    return bool(AGGREGATION_PATTERNS.search(query))
 
 
 class HybridRetriever:
@@ -49,22 +66,30 @@ class HybridRetriever:
         query: str,
         db: Session,
         top_k: Optional[int] = None,
-        use_hybrid: bool = True
+        use_hybrid: bool = True,
+        broad: bool = False
     ) -> List[Tuple[Chunk, float, Dict]]:
         """
         Retrieve relevant chunks for a query.
-        
+
         Args:
             query: Search query
             db: Database session
             top_k: Override default top_k
             use_hybrid: Use hybrid search (True) or semantic-only (False)
-            
+            broad: For count/enumeration questions ("how many teachers", "list
+                all departments") - returns many more chunks via keyword search
+                alone, since the answer is scattered across a document rather
+                than concentrated in the few chunks top-k retrieval targets.
+
         Returns:
             List of tuples: (Chunk, score, metadata)
         """
         top_k = top_k or self.top_k
-        
+
+        if broad:
+            return self._broad_search(query, db, top_k=max(top_k, 40))
+
         if use_hybrid:
             # Get both keyword and semantic results
             keyword_results = self._keyword_search(query, db, top_k=top_k * 2)
@@ -86,6 +111,48 @@ class HybridRetriever:
         
         return fused_results
     
+    def _broad_search(
+        self,
+        query: str,
+        db: Session,
+        top_k: int
+    ) -> List[Tuple[Chunk, float, Dict]]:
+        """
+        Recall-oriented retrieval for count/enumeration questions.
+
+        Takes the union of keyword and semantic top-k rather than RRF-fusing
+        them: fusion is tuned to surface the single best-matching chunk,
+        which is the wrong goal for an aggregation question that needs every
+        chunk touching the topic. Keyword search alone isn't enough either -
+        ts_rank scores by term frequency within a chunk, so a generic word
+        like "department" (present in nearly every chunk of a
+        department-organized prospectus) can outrank a chunk that mentions
+        the specific department only once; semantic search isn't fooled by
+        that since it matches on meaning, not word counts.
+        """
+        keyword_results = self._keyword_search(query, db, top_k=top_k)
+        semantic_results = self._semantic_search(query, db, top_k=top_k)
+
+        # Interleave rather than concatenate: whatever cap the caller applies
+        # downstream (e.g. max_chunks to the LLM) must not exhaust one signal
+        # before the other gets a chance - keyword and semantic each surface
+        # results the other misses (see docstring above).
+        seen = set()
+        merged = []
+        interleaved = itertools.chain.from_iterable(
+            itertools.zip_longest(keyword_results, semantic_results, fillvalue=(None, 0.0))
+        )
+        for chunk, _ in interleaved:
+            if chunk is None or chunk.id in seen:
+                continue
+            seen.add(chunk.id)
+            merged.append(chunk)
+
+        return [
+            (chunk, 1.0, {"source": "broad", "rank": i + 1})
+            for i, chunk in enumerate(merged[:top_k * 2])
+        ]
+
     def _keyword_search(
         self,
         query: str,

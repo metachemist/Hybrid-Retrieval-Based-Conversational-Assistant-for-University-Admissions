@@ -52,8 +52,16 @@ class EmbeddingModel:
     # Gemini embeddings (gemini-embedding-001, 768-dim, free)
     # ------------------------------------------------------------------
 
+    def _is_gemini_fallback_worthy(self, e: Exception) -> bool:
+        """Quota errors (429) and transient network failures - not other bugs."""
+        from google.genai import errors
+        import httpx
+        if isinstance(e, errors.ClientError):
+            return e.code == 429
+        return isinstance(e, httpx.TransportError)  # timeouts, connection errors
+
     def _gemini_embed_batch(self, texts: List[str]) -> List[List[float]]:
-        from google.genai import types, errors
+        from google.genai import types
         client = self._get_gemini_client()
         results = []
         for text in texts:
@@ -64,15 +72,15 @@ class EmbeddingModel:
                     config=types.EmbedContentConfig(output_dimensionality=GEMINI_EMBEDDING_DIMENSION),
                 )
                 results.append(resp.embeddings[0].values)
-            except errors.ClientError as e:
-                if e.code != 429:
+            except Exception as e:
+                if not self._is_gemini_fallback_worthy(e):
                     raise
-                logger.warning("Gemini quota exhausted, falling back to OpenAI for this embedding")
+                logger.warning("Gemini unavailable (%s), falling back to OpenAI for this embedding", e)
                 results.append(self._openai_embed_one(text, dimensions=GEMINI_EMBEDDING_DIMENSION))
         return results
 
     def _gemini_embed_one(self, text: str) -> List[float]:
-        from google.genai import types, errors
+        from google.genai import types
         client = self._get_gemini_client()
         try:
             resp = client.models.embed_content(
@@ -81,10 +89,10 @@ class EmbeddingModel:
                 config=types.EmbedContentConfig(output_dimensionality=GEMINI_EMBEDDING_DIMENSION),
             )
             return resp.embeddings[0].values
-        except errors.ClientError as e:
-            if e.code != 429:
+        except Exception as e:
+            if not self._is_gemini_fallback_worthy(e):
                 raise
-            logger.warning("Gemini quota exhausted, falling back to OpenAI for this embedding")
+            logger.warning("Gemini unavailable (%s), falling back to OpenAI for this embedding", e)
             return self._openai_embed_one(text, dimensions=GEMINI_EMBEDDING_DIMENSION)
 
     # ------------------------------------------------------------------

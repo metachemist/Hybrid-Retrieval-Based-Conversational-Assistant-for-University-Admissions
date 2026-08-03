@@ -19,7 +19,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace(user.role === 'admin' ? '/admin' : '/')
+      router.replace('/')
     }
   }, [user, isLoading, router])
 
@@ -32,13 +32,10 @@ export default function RegisterPage() {
 
     setSubmitting(true)
     try {
-      const profile = await register(email, password, adminKey || undefined)
-      router.replace(profile.role === 'admin' ? '/admin' : '/')
+      await register(email, password, adminKey || undefined)
+      router.replace('/')
     } catch (err: any) {
-      const msg: string = err.message || ''
-      if (msg.includes('400')) setError('Email already registered.')
-      else if (msg.includes('403')) setError('Invalid admin key.')
-      else setError(msg)
+      setError(err.message || 'Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -55,6 +52,9 @@ export default function RegisterPage() {
       {/* ── Left panel (decorative) ──────────────────────── */}
       <div className="hidden lg:flex lg:w-5/12 bg-slate-950 flex-col items-center justify-center
                       relative overflow-hidden p-12 select-none">
+        {/* Decorative gradient blob */}
+        <div className="gradient-blob absolute inset-0 pointer-events-none" />
+
         {/* Concentric rings */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {[480, 360, 260, 170, 90].map((size, i) => (
@@ -64,26 +64,28 @@ export default function RegisterPage() {
               style={{ width: size, height: size }}
             />
           ))}
-          <div className="absolute w-32 h-32 rounded-full border border-amber-400/20" />
+          <div className="absolute w-32 h-32 rounded-full border border-primary-400/20" />
         </div>
 
         <div className="relative z-10 text-center">
           <div className="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center
-                          justify-center mx-auto mb-8 border border-white/10">
+                          justify-center mx-auto mb-8 border border-white/10 animate-float">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="font-serif-display text-4xl text-white leading-tight mb-4">
+          <h1 className="font-display font-bold text-6xl gradient-text leading-tight mb-4 animate-in-up">
             Start your<br />journey
           </h1>
-          <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto">
+          <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto animate-in-up stagger-1">
             Create an account to access the University of Karachi admissions assistant.
             Admins use a private key during registration.
           </p>
           <div className="flex gap-3 mt-10 justify-center flex-wrap">
-            {['Instant Answers', 'RAG-Powered', 'Roman Urdu Support'].map(tag => (
+            {['Instant Answers', 'RAG-Powered', 'Roman Urdu Support'].map((tag, i) => (
               <span key={tag}
-                className="px-3 py-1 rounded-full bg-white/5 border border-white/10
-                           text-xs text-slate-400 font-medium">
+                style={{ animationDelay: `${0.3 + i * 0.08}s` }}
+                className="animate-in-up px-3 py-1 rounded-full bg-white/5 border border-white/10
+                           text-xs text-slate-400 font-medium hover:border-primary-400/40
+                           hover:text-primary-300 transition-colors">
                 {tag}
               </span>
             ))}
@@ -93,7 +95,7 @@ export default function RegisterPage() {
 
       {/* ── Right panel (form) ───────────────────────────── */}
       <div className="flex-1 flex items-center justify-center bg-white px-8 py-12">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm animate-in-up">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-2.5 mb-8">
             <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
@@ -105,7 +107,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <h2 className="font-serif-display text-3xl text-slate-900 mb-1">Create account</h2>
+          <h2 className="font-display font-bold text-3xl text-slate-900 mb-1">Create account</h2>
           <p className="text-sm text-slate-500 mb-8">Get started in seconds.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -161,9 +163,10 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-xl
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-full
                          text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed
-                         flex items-center justify-center gap-2 transition-colors mt-2"
+                         flex items-center justify-center gap-2 transition-all mt-2
+                         hover:scale-[1.02] active:scale-[0.98]"
             >
               {submitting ? (
                 <>

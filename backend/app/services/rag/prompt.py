@@ -58,6 +58,13 @@ IMPORTANT RULES:
    use South Asian lakh-style grouping (e.g. "6,50,000" means 650,000, not 6,500
    or 6.5). Never round, reformat, reinterpret, or recompute a number from the
    source; copy it verbatim.
+10. For counting or "list all" questions (e.g. "how many teachers", "list all
+    departments"): enumerate every distinct item that appears anywhere across
+    ALL provided excerpts, not just the first one you notice - duplicates of
+    the same name/item across excerpts should only be counted once. State the
+    count you find as "at least N" rather than a bare total, and note that the
+    provided excerpts may not be exhaustive, since more instances could exist
+    elsewhere in the source document.
 
 Remember: Your responses must be grounded in the provided documents."""
 

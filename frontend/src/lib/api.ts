@@ -7,6 +7,18 @@
 // (see .env.local.example).
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+// Thrown by ApiClient.request() with the backend's actual error message
+// (FastAPI's {"detail": "..."}) and status code, so callers can branch on
+// `status` reliably instead of substring-matching the raw response text.
+export class ApiError extends Error {
+  status: number
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
 export interface ChatRequest {
   query: string
   top_k?: number
@@ -137,8 +149,16 @@ class ApiClient {
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`API Error: ${response.status} - ${error}`)
+      let message = response.statusText || `Request failed (${response.status})`
+      try {
+        const body = await response.json()
+        if (body?.detail) {
+          message = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)
+        }
+      } catch {
+        // Response wasn't JSON - keep the fallback message.
+      }
+      throw new ApiError(response.status, message)
     }
 
     return response.json()
@@ -224,8 +244,16 @@ class ApiClient {
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Upload Error: ${response.status} - ${error}`)
+      let message = response.statusText || `Upload failed (${response.status})`
+      try {
+        const body = await response.json()
+        if (body?.detail) {
+          message = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)
+        }
+      } catch {
+        // Response wasn't JSON - keep the fallback message.
+      }
+      throw new ApiError(response.status, message)
     }
 
     return response.json()

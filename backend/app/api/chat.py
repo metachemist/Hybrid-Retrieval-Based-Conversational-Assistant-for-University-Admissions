@@ -15,7 +15,7 @@ from ..core.config import settings
 from ..core.security import get_current_user
 from ..models import QueryLog
 from ..services.roman_urdu import LanguageDetector, RomanUrduNormalizer
-from ..services.retrieval.hybrid_retriever import get_retriever
+from ..services.retrieval.hybrid_retriever import get_retriever, is_aggregation_query
 from ..services.retrieval.embeddings import get_embedding_model
 from ..services.rag.llm_provider import get_llm_provider
 from ..services.rag.prompt import create_rag_prompt, RAGPromptBuilder
@@ -95,14 +95,19 @@ async def chat(
     #     return ChatResponse(**cached_response, cache_hit=True)
     
     # Step 4: Retrieve relevant chunks
+    # Count/enumeration questions ("how many teachers", "list all departments")
+    # need many more chunks than a normal lookup - the answer is scattered
+    # across a document, not concentrated in the usual top-5/10.
+    is_broad = is_aggregation_query(normalized_query)
     retriever = get_retriever()
     results = retriever.retrieve(
         query=normalized_query,
         db=db,
         top_k=request.top_k,
-        use_hybrid=request.use_hybrid
+        use_hybrid=request.use_hybrid,
+        broad=is_broad
     )
-    
+
     if not results:
         # No relevant chunks found
         return ChatResponse(
@@ -130,7 +135,7 @@ async def chat(
         query=query,
         chunks=chunks,
         documents=documents,
-        max_chunks=10
+        max_chunks=40 if is_broad else 10
     )
     
     # Step 6: Generate response using LLM
@@ -142,7 +147,7 @@ async def chat(
             prompt=user_prompt,
             system_prompt=system_prompt,
             temperature=settings.LLM_TEMPERATURE,
-            max_tokens=settings.LLM_MAX_TOKENS
+            max_tokens=2048 if is_broad else settings.LLM_MAX_TOKENS
         )
     except Exception as e:
         # Fallback: return retrieved chunks directly

@@ -8,7 +8,7 @@ export default function TypingIndicator() {
       {/* Avatar matches assistant style */}
       <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-slate-800 border border-slate-700
                       flex items-center justify-center">
-        <Sparkles className="w-4 h-4 text-amber-400" />
+        <Sparkles className="w-4 h-4 text-primary-400" />
       </div>
 
       <div className="flex flex-col gap-1.5">

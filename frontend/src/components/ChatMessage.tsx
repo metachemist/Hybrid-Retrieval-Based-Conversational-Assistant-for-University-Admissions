@@ -27,12 +27,12 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       {/* Avatar */}
       <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-sm
         ${isUser
-          ? 'bg-primary-600'
+          ? 'bg-slate-900'
           : 'bg-slate-800 border border-slate-700'
         }`}>
         {isUser
           ? <User className="w-4 h-4 text-white" />
-          : <Sparkles className="w-4 h-4 text-amber-400" />
+          : <Sparkles className="w-4 h-4 text-primary-400" />
         }
       </div>
 
@@ -47,7 +47,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         {/* Message bubble */}
         <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed
           ${isUser
-            ? 'bg-primary-600 text-white rounded-tr-sm'
+            ? 'bg-slate-900 text-white rounded-tr-sm'
             : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200 border-l-2 border-l-primary-400 shadow-sm'
           }`}>
           {isUser ? (

@@ -8,17 +8,20 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Lime/chartreuse accent — vivid tints (50-400) for badges, borders,
+        // and hero highlights; darker shades (600+) double as functional
+        // text/button colors that keep AA contrast on white.
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#f7fee7',
+          100: '#ecfccb',
+          200: '#d9f99d',
+          300: '#bef264',
+          400: '#a3e635',
+          500: '#84cc16',
+          600: '#4d7c0f',
+          700: '#3f6212',
+          800: '#365314',
+          900: '#1a2e05',
         },
       },
     },

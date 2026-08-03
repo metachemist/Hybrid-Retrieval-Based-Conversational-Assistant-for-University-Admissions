@@ -3,11 +3,6 @@
 @tailwind utilities;
 
 /* ─── Base ─────────────────────────────────────────────── */
-:root {
-  --font-outfit: 'Outfit', system-ui, sans-serif;
-  --font-dm-serif: 'DM Serif Display', Georgia, serif;
-}
-
 body {
   background-color: #f8fafc; /* slate-50 */
   color: #0f172a; /* slate-900 */
@@ -17,9 +12,23 @@ body {
 
 /* ─── Fonts ─────────────────────────────────────────────── */
 @layer utilities {
-  .font-serif-display {
-    font-family: var(--font-dm-serif);
+  .font-display {
+    font-family: var(--font-display), system-ui, sans-serif;
   }
+}
+
+/* ─── Animated gradient headline text ────────────────────── */
+.gradient-text {
+  background: linear-gradient(90deg, #bef264, #86efac, #67e8f9, #bef264);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradientShift 6s ease-in-out infinite;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────── */
@@ -53,6 +62,58 @@ body {
 .dot-grid {
   background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
   background-size: 22px 22px;
+}
+
+/* ─── Gradient blob (dark hero accent) ───────────────────── */
+.gradient-blob {
+  background:
+    radial-gradient(circle at 20% 25%, rgba(163, 230, 53, 0.35), transparent 45%),
+    radial-gradient(circle at 80% 15%, rgba(251, 146, 60, 0.20), transparent 45%),
+    radial-gradient(circle at 65% 80%, rgba(56, 189, 248, 0.18), transparent 50%);
+  filter: blur(50px);
+  animation: blobBreathe 10s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes blobBreathe {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.15) rotate(6deg); }
+}
+
+/* ─── Entrance animations ────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: translateY(0);      }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1);   }
+}
+.animate-in-up {
+  animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-in-down {
+  animation: fadeSlideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-in-pop {
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.stagger-1 { animation-delay: 0.06s; }
+.stagger-2 { animation-delay: 0.12s; }
+.stagger-3 { animation-delay: 0.18s; }
+.stagger-4 { animation-delay: 0.24s; }
+.stagger-5 { animation-delay: 0.30s; }
+
+/* ─── Gentle float (hero icon) ────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0);    }
+  50%      { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float 3.4s ease-in-out infinite;
 }
 
 /* ─── Smooth focus ring ──────────────────────────────────── */
