@@ -79,4 +79,4 @@ data/processed/*.txt
 
 # Model cache
 .cache/
-models/
+/models/
