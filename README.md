@@ -222,10 +222,12 @@ npm run lint
 | Service | Platform |
 |---------|----------|
 | Frontend | Vercel |
-| Backend | Railway |
+| Backend | Render |
 | Database | Neon |
 
-Set `API_URL` in the Vercel environment to point to your Railway backend.
+Backend is deployed on Render (Docker web service) at `https://university-admissions-chatbot.onrender.com` — Railway was tried first but hit deployment errors. Set `API_URL` in the Vercel environment to point to the Render backend.
+
+> Free-tier Render instances spin down after inactivity; the first request after idling can take 50+ seconds to respond.
 
 ## License
 

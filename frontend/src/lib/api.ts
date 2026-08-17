@@ -2,7 +2,7 @@
  * API Client for the Admission Chatbot Backend
  */
 
-// Backend runs on Railway. Set NEXT_PUBLIC_API_URL to the Railway backend URL
+// Backend runs on Render. Set NEXT_PUBLIC_API_URL to the Render backend URL
 // in the Vercel project settings. For local dev, set it in frontend/.env.local
 // (see .env.local.example).
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
