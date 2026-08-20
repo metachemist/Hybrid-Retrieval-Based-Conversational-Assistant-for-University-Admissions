@@ -1,6 +1,6 @@
 'use client'
 
-import { Message } from '@/app/page'
+import { Message } from '@/app/chat/page'
 import { User, Sparkles, BookOpen } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -27,8 +27,8 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       {/* Avatar */}
       <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-sm
         ${isUser
-          ? 'bg-slate-900'
-          : 'bg-slate-800 border border-slate-700'
+          ? 'bg-neutral-900'
+          : 'bg-neutral-800 border border-neutral-700'
         }`}>
         {isUser
           ? <User className="w-4 h-4 text-white" />
@@ -40,15 +40,15 @@ export default function ChatMessage({ message }: ChatMessageProps) {
       <div className={`flex flex-col gap-1.5 max-w-[78%] ${isUser ? 'items-end' : 'items-start'}`}>
 
         {/* Role label */}
-        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest px-1">
+        <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest px-1">
           {isUser ? 'You' : 'Assistant'}
         </p>
 
         {/* Message bubble */}
         <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed
           ${isUser
-            ? 'bg-slate-900 text-white rounded-tr-sm'
-            : 'bg-white text-slate-800 rounded-tl-sm border border-slate-200 border-l-2 border-l-primary-400 shadow-sm'
+            ? 'bg-neutral-900 text-white rounded-tr-sm'
+            : 'bg-white text-neutral-800 rounded-tl-sm border border-neutral-200 border-l-2 border-l-primary-400 shadow-sm'
           }`}>
           {isUser ? (
             <p>{message.content}</p>
@@ -59,11 +59,11 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                 p:      ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
                 ul:     ({ node, ...props }) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
                 ol:     ({ node, ...props }) => <ol className="list-decimal list-inside mb-2 space-y-1" {...props} />,
-                li:     ({ node, ...props }) => <li className="text-slate-700" {...props} />,
-                strong: ({ node, ...props }) => <strong className="font-semibold text-slate-900" {...props} />,
-                em:     ({ node, ...props }) => <em className="italic text-slate-600" {...props} />,
+                li:     ({ node, ...props }) => <li className="text-neutral-700" {...props} />,
+                strong: ({ node, ...props }) => <strong className="font-semibold text-neutral-900" {...props} />,
+                em:     ({ node, ...props }) => <em className="italic text-neutral-600" {...props} />,
                 code:   ({ node, ...props }) => (
-                  <code className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-xs font-mono" {...props} />
+                  <code className="bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-xs font-mono" {...props} />
                 ),
               }}
             >
@@ -74,14 +74,14 @@ export default function ChatMessage({ message }: ChatMessageProps) {
 
         {/* Metadata row */}
         <div className={`flex items-center gap-2 flex-wrap px-1 ${isUser ? 'flex-row-reverse' : ''}`}>
-          <span className="text-[10px] text-slate-400">
+          <span className="text-[10px] text-neutral-400">
             {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
           {!isUser && message.latency_ms && (
-            <span className="text-[10px] text-slate-400">{message.latency_ms}ms</span>
+            <span className="text-[10px] text-neutral-400">{message.latency_ms}ms</span>
           )}
           {!isUser && message.llm_provider && (
-            <span className="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-medium capitalize">
+            <span className="px-1.5 py-0.5 bg-neutral-100 text-neutral-500 rounded-full text-[10px] font-medium capitalize">
               {message.llm_provider}
             </span>
           )}
@@ -97,7 +97,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           <div className="w-full">
             <button
               onClick={() => setShowCitations(!showCitations)}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500
+              className="flex items-center gap-1.5 text-[11px] font-medium text-neutral-500
                          hover:text-primary-600 transition-colors px-1"
             >
               <BookOpen className="w-3 h-3" />

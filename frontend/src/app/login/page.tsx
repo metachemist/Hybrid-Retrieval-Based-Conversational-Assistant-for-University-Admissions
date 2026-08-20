@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace('/')
+      router.replace('/chat')
     }
   }, [user, isLoading, router])
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
     setSubmitting(true)
     try {
       await login(email, password)
-      router.replace('/')
+      router.replace('/chat')
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
@@ -38,24 +38,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
 
       {/* ── Left panel (decorative) ──────────────────────── */}
-      <div className="hidden lg:flex lg:w-5/12 bg-slate-950 flex-col items-center justify-center
+      <div className="dot-grid-dark hidden lg:flex lg:w-5/12 bg-[#111111] flex-col items-center justify-center
                       relative overflow-hidden p-12 select-none">
-        {/* Decorative gradient blob */}
-        <div className="gradient-blob absolute inset-0 pointer-events-none" />
-
-        {/* Concentric ring decorations */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {[480, 360, 260, 170, 90].map((size, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full border border-white/[0.04]"
-              style={{ width: size, height: size }}
-            />
-          ))}
-          {/* Lime accent ring */}
-          <div className="absolute w-32 h-32 rounded-full border border-primary-400/20" />
-        </div>
-
         {/* Content */}
         <div className="relative z-10 text-center">
           <div className="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center
@@ -65,7 +49,7 @@ export default function LoginPage() {
           <h1 className="font-display font-bold text-6xl gradient-text leading-tight mb-4 animate-in-up">
             University of<br />Karachi
           </h1>
-          <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto animate-in-up stagger-1">
+          <p className="text-neutral-500 text-sm leading-relaxed max-w-xs mx-auto animate-in-up stagger-1">
             AI-powered admission information: get instant, document-grounded answers to your queries.
           </p>
 
@@ -75,7 +59,7 @@ export default function LoginPage() {
               <span key={tag}
                 style={{ animationDelay: `${0.3 + i * 0.08}s` }}
                 className="animate-in-up px-3 py-1 rounded-full bg-white/5 border border-white/10
-                           text-xs text-slate-400 font-medium hover:border-primary-400/40
+                           text-xs text-neutral-400 font-medium hover:border-primary-400/40
                            hover:text-primary-300 transition-colors">
                 {tag}
               </span>
@@ -89,21 +73,21 @@ export default function LoginPage() {
         <div className="w-full max-w-sm animate-in-up">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-neutral-900 rounded-xl flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900 leading-none">Admission Assistant</p>
-              <p className="text-xs text-slate-500 leading-none mt-0.5">University of Karachi</p>
+              <p className="text-sm font-semibold text-neutral-900 leading-none">Admission Assistant</p>
+              <p className="text-xs text-neutral-500 leading-none mt-0.5">University of Karachi</p>
             </div>
           </div>
 
-          <h2 className="font-display font-bold text-3xl text-slate-900 mb-1">Welcome back</h2>
-          <p className="text-sm text-slate-500 mb-8">Sign in to your account to continue.</p>
+          <h2 className="font-display font-bold text-3xl text-neutral-900 mb-1">Welcome back</h2>
+          <p className="text-sm text-neutral-500 mb-8">Sign in to your account to continue.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide mb-1.5">
                 Email
               </label>
               <input
@@ -111,8 +95,8 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm
-                           text-slate-900 placeholder-slate-400
+                className="w-full border border-neutral-300 rounded-xl px-4 py-3 text-sm
+                           text-neutral-900 placeholder-neutral-400
                            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                            transition-shadow"
                 placeholder="you@example.com"
@@ -121,7 +105,7 @@ export default function LoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wide">
                   Password
                 </label>
                 <Link href="/forgot-password"
@@ -134,8 +118,8 @@ export default function LoginPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm
-                           text-slate-900 placeholder-slate-400
+                className="w-full border border-neutral-300 rounded-xl px-4 py-3 text-sm
+                           text-neutral-900 placeholder-neutral-400
                            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
                            transition-shadow"
                 placeholder="••••••••"
@@ -153,14 +137,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-full
+              className="w-full bg-primary-300 hover:bg-primary-200 text-neutral-900 py-3 px-4 rounded-full
                          text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed
                          flex items-center justify-center gap-2 transition-all mt-2
                          hover:scale-[1.02] active:scale-[0.98]"
             >
               {submitting ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-neutral-900/30 border-t-neutral-900 rounded-full animate-spin" />
                   Signing in…
                 </>
               ) : (
@@ -172,16 +156,16 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-100 space-y-2 text-sm text-center">
-            <p className="text-slate-500">
+          <div className="mt-6 pt-6 border-t border-neutral-100 space-y-2 text-sm text-center">
+            <p className="text-neutral-500">
               Don&apos;t have an account?{' '}
               <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
                 Create one
               </Link>
             </p>
-            <Link href="/" className="flex items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition-colors">
+            <Link href="/" className="flex items-center justify-center gap-1 text-neutral-400 hover:text-neutral-600 transition-colors">
               <ArrowRight className="w-3.5 h-3.5 rotate-180" />
-              Back to chatbot
+              Back to home
             </Link>
           </div>
         </div>

@@ -27,10 +27,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const initials = user.email.slice(0, 2).toUpperCase()
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-neutral-50">
 
       {/* ── Sidebar ─────────────────────────────────────── */}
-      <aside className="w-60 bg-slate-950 flex flex-col flex-shrink-0 animate-in-down">
+      <aside className="w-60 bg-[#111111] flex flex-col flex-shrink-0 animate-in-down">
 
         {/* Logo */}
         <div className="px-5 py-5 border-b border-white/5">
@@ -41,14 +41,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div>
               <p className="text-xs font-semibold text-white leading-none">Admin Console</p>
-              <p className="text-xs text-slate-500 leading-none mt-0.5">UoK Chatbot</p>
+              <p className="text-xs text-neutral-500 leading-none mt-0.5">UoK Chatbot</p>
             </div>
           </div>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          <p className="px-3 mb-2 text-[10px] font-semibold text-slate-600 uppercase tracking-widest">
+          <p className="px-3 mb-2 text-[10px] font-semibold text-neutral-600 uppercase tracking-widest">
             Navigation
           </p>
           {navItems.map(({ href, label, icon: Icon }, i) => {
@@ -62,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             transition-all hover:scale-[1.02] active:scale-[0.98] ${
                   active
                     ? 'bg-white/10 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-primary-400' : ''}`} />
@@ -78,9 +78,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Footer */}
         <div className="px-3 py-4 border-t border-white/5 space-y-0.5">
           <Link
-            href="/"
+            href="/chat"
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                       text-slate-500 hover:text-white hover:bg-white/5 transition-all
+                       text-neutral-500 hover:text-white hover:bg-white/5 transition-all
                        hover:scale-[1.02] active:scale-[0.98]"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -89,10 +89,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             onClick={() => {
               logout()
-              router.push('/login')
+              router.push('/')
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                       text-slate-500 hover:text-white hover:bg-white/5 transition-all
+                       text-neutral-500 hover:text-white hover:bg-white/5 transition-all
                        hover:scale-[1.02] active:scale-[0.98]"
           >
             <LogOut className="w-4 h-4" />
@@ -101,11 +101,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* User chip */}
           <div className="flex items-center gap-2.5 px-3 py-2 mt-2">
-            <div className="w-7 h-7 rounded-lg bg-slate-700 flex items-center justify-center
+            <div className="w-7 h-7 rounded-lg bg-neutral-700 flex items-center justify-center
                             text-xs font-bold text-white flex-shrink-0">
               {initials}
             </div>
-            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+            <p className="text-xs text-neutral-500 truncate">{user.email}</p>
           </div>
         </div>
       </aside>

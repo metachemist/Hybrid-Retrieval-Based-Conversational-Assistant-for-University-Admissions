@@ -1,237 +1,251 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import ChatMessage from '@/components/ChatMessage'
-import ChatInput from '@/components/ChatInput'
-import TypingIndicator from '@/components/TypingIndicator'
-import { GraduationCap, LayoutDashboard, LogIn, LogOut, Sparkles } from 'lucide-react'
-import { api } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
+import {
+  GraduationCap,
+  ArrowRight,
+  Search,
+  Languages,
+  FileCheck,
+  MessageCircle,
+  Database,
+  BadgeCheck,
+  Sparkles,
+} from 'lucide-react'
+import ScrambleCodeBlock from '@/components/ScrambleCodeBlock'
 
-export interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  citations?: Citation[]
-  timestamp: Date
-  language?: string
-  latency_ms?: number
-  llm_provider?: string
-}
-
-export interface Citation {
-  index: number
-  document_title: string
-  section_header: string
-  page_start: number
-  page_end: number
-  content_preview: string
-}
-
-const SUGGESTIONS = [
-  'Eligibility criteria for undergraduate?',
-  'Last date for form submission?',
-  'Required documents for admission?',
-  'Fee structure for this year?',
+const STATS = [
+  { value: '2', label: 'Retrieval methods combined' },
+  { value: '24/7', label: 'Available anytime' },
+  { value: '100%', label: 'Answers cited' },
 ]
 
-export default function Home() {
-  const { user, logout } = useAuth()
-  const router = useRouter()
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+const FEATURES = [
+  {
+    icon: Search,
+    title: 'Hybrid retrieval',
+    body: 'Combines keyword search (BM25) with semantic vector search over official admission documents, so answers are grounded in the source text, not guesses.',
+  },
+  {
+    icon: Languages,
+    title: 'English + Roman Urdu',
+    body: 'Ask your question in either language and get a response in kind — built for how students actually type.',
+  },
+  {
+    icon: FileCheck,
+    title: 'Cited sources',
+    body: 'Every answer links back to the exact document, section, and page it came from, so you can verify it yourself.',
+  },
+]
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+const STEPS = [
+  {
+    n: '01',
+    icon: MessageCircle,
+    title: 'Ask your question',
+    body: 'Eligibility, fees, deadlines, required documents — type it the way you’d ask a friend.',
+  },
+  {
+    n: '02',
+    icon: Database,
+    title: 'We search the documents',
+    body: 'The assistant retrieves the most relevant passages from official University of Karachi admission policies.',
+  },
+  {
+    n: '03',
+    icon: BadgeCheck,
+    title: 'Get a cited answer',
+    body: 'A concise, accurate response with links to the exact source material behind it.',
+  },
+]
 
-  const sendMessage = async (query: string) => {
-    if (!query.trim()) return
-    setError(null)
-    setIsLoading(true)
-
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      role: 'user',
-      content: query,
-      timestamp: new Date(),
-    }])
-
-    try {
-      const data = await api.chat({ query, top_k: 10, use_hybrid: true })
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response,
-        citations: data.citations,
-        timestamp: new Date(),
-        language: data.language,
-        latency_ms: data.latency_ms,
-        llm_provider: data.llm_provider,
-      }])
-    } catch (err) {
-      console.error('Error sending message:', err)
-      setError('Failed to get a response. Please try again.')
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: "I'm sorry, I encountered an error while processing your request. Please try again later.",
-        timestamp: new Date(),
-      }])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
+/** Bordered decorative panel with corner "handles", echoing a design-tool selection frame. */
+function CornerFrame({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <main className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className={`relative border border-white/15 ${className}`}>
+      {[
+        'top-0 left-0 -translate-x-1/2 -translate-y-1/2',
+        'top-0 right-0 translate-x-1/2 -translate-y-1/2',
+        'bottom-0 left-0 -translate-x-1/2 translate-y-1/2',
+        'bottom-0 right-0 translate-x-1/2 translate-y-1/2',
+      ].map(pos => (
+        <span key={pos} className={`absolute ${pos} w-2 h-2 border border-primary-400 bg-[#111111]`} />
+      ))}
+      {children}
+    </div>
+  )
+}
 
-      {/* ── Header ──────────────────────────────────────── */}
-      <header className="flex-shrink-0 bg-slate-50 px-3 pt-3 animate-in-down">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4
-                        rounded-full bg-slate-900 text-white px-5 py-2.5 shadow-lg
-                        border border-white/5">
-          {/* Brand */}
-          <div className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10
-                            flex items-center justify-center transition-transform duration-300
-                            group-hover:rotate-12 group-hover:scale-110">
-              <GraduationCap className="w-4.5 h-4.5 text-primary-400" strokeWidth={2} />
+export default function LandingPage() {
+  return (
+    <main className="bg-white">
+
+      {/* ── Black block: nav + hero ──────────────────────── */}
+      <div className="dot-grid-dark relative overflow-hidden bg-[#111111] text-white">
+        <header className="px-6 sm:px-10 relative z-10">
+          <div className="max-w-5xl mx-auto flex items-center justify-between h-16">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                <GraduationCap className="w-4.5 h-4.5 text-primary-400" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold leading-none">Admission Assistant</p>
+                <p className="text-xs text-neutral-500 leading-none mt-0.5">University of Karachi</p>
+              </div>
             </div>
+            <Link
+              href="/login"
+              className="px-4 py-1.5 rounded-full bg-primary-300 hover:bg-primary-200 text-neutral-900
+                         text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+            >
+              Sign in
+            </Link>
+          </div>
+        </header>
+
+        <section className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pt-16 pb-24 sm:pt-24 sm:pb-32">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <p className="text-sm font-semibold leading-none text-white">Admission Assistant</p>
-              <p className="text-xs text-slate-400 leading-none mt-0.5">University of Karachi</p>
-            </div>
-          </div>
+              <p className="text-xs font-medium uppercase tracking-widest text-neutral-500 mb-6 animate-in-up">
+                &middot; University of Karachi &middot; Admissions 2026
+              </p>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1.5">
-            {user?.role === 'admin' && (
-              <Link
-                href="/admin"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                           text-slate-300 hover:text-white hover:bg-white/5 transition-all
-                           hover:scale-105 active:scale-95"
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                Dashboard
-              </Link>
-            )}
-            {user ? (
-              <button
-                onClick={() => {
-                  logout()
-                  router.push('/login')
-                }}
-                title={`Signed in as ${user.email}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                           text-slate-300 hover:text-white hover:bg-white/5 transition-all
-                           hover:scale-105 active:scale-95"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                Sign out
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold
-                           bg-primary-300 hover:bg-primary-200 text-slate-900 transition-all
-                           hover:scale-105 active:scale-95 shadow-sm"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                Sign in
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+              <h1 className="font-display font-bold text-5xl sm:text-7xl leading-[0.95] tracking-tight mb-8 animate-in-up stagger-1">
+                STOP GUESSING.
+                <br />
+                <span className="text-primary-400">ASK THE ASSISTANT.</span>
+              </h1>
 
-      {/* ── Messages ─────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 ? (
-          /* Empty state */
-          <div className="dot-grid h-full flex items-center justify-center px-4 py-8">
-            <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl
-                            bg-slate-950 border border-white/5 shadow-xl
-                            px-8 py-14 text-center">
-              {/* Decorative gradient blob */}
-              <div className="gradient-blob absolute inset-0 pointer-events-none" />
+              <p className="text-neutral-400 text-base sm:text-lg leading-relaxed max-w-lg mb-10 animate-in-up stagger-2">
+                Instant, cited answers about admissions — eligibility, fees, deadlines, and required
+                documents — pulled straight from official policy documents.
+              </p>
 
-              <div className="relative z-10 max-w-lg mx-auto">
-                {/* Icon */}
-                <div className="relative inline-flex mb-6 animate-in-pop">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 backdrop-blur
-                                  flex items-center justify-center animate-float">
-                    <Sparkles className="w-7 h-7 text-primary-400" />
-                  </div>
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary-400
-                                   border-2 border-slate-950 animate-pulse" />
-                </div>
-
-                {/* Heading */}
-                <h2 className="font-display font-bold text-5xl sm:text-6xl mb-3
-                               gradient-text animate-in-up stagger-1">
-                  Ask me anything
-                </h2>
-                <p className="text-sm text-slate-400 mb-8 leading-relaxed animate-in-up stagger-2">
-                  I have access to official University of Karachi admission documents.
-                  Try asking about eligibility, fees, deadlines, or required materials.
-                </p>
-
-                {/* Suggestion chips */}
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {SUGGESTIONS.map((q, i) => (
-                    <button
-                      key={i}
-                      onClick={() => sendMessage(q)}
-                      style={{ animationDelay: `${0.3 + i * 0.08}s` }}
-                      className="animate-in-up px-4 py-2 bg-white/5 border border-white/10 text-slate-200
-                                 rounded-full text-xs font-medium hover:border-primary-300
-                                 hover:text-slate-900 hover:bg-primary-300
-                                 transition-all duration-150 hover:scale-105 active:scale-95"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-col sm:flex-row items-start gap-3 animate-in-up stagger-3">
+                <Link
+                  href="/login"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-3.5 rounded-full
+                             bg-primary-300 hover:bg-primary-200 text-neutral-900 font-semibold text-sm
+                             transition-all hover:scale-105 active:scale-95"
+                >
+                  Take me to the chatbot
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/register"
+                  className="w-full sm:w-auto flex items-center justify-center px-7 py-3.5 rounded-full
+                             bg-white/5 hover:bg-white/10 border border-white/10 font-semibold text-sm
+                             transition-all hover:scale-105 active:scale-95"
+                >
+                  Create an account
+                </Link>
               </div>
             </div>
+
+            {/* RAG.PY panel — right of the hero text */}
+            <div className="hidden lg:block animate-in-up stagger-2">
+              <span className="inline-block mb-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-wide bg-primary-300 text-neutral-900">
+                RAG.PY
+              </span>
+              <CornerFrame className="h-52 bg-white/[0.03] rounded-lg overflow-hidden p-5">
+                <ScrambleCodeBlock className="text-sm leading-[1.7]" />
+              </CornerFrame>
+            </div>
           </div>
-        ) : (
-          <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-            {messages.map(message => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-            {isLoading && <TypingIndicator />}
-            {error && (
-              <div className="flex justify-center">
-                <p className="text-xs text-red-600 bg-red-50 border border-red-200
-                              px-4 py-2 rounded-full">
-                  {error}
-                </p>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
+        </section>
       </div>
 
-      {/* ── Input ────────────────────────────────────────── */}
-      <div className="flex-shrink-0 border-t border-slate-200 bg-white">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <ChatInput
-            onSendMessage={sendMessage}
-            disabled={isLoading}
-            placeholder="Ask about admission requirements, deadlines, documents…"
-          />
-          <p className="text-center text-xs text-slate-400 mt-2">
-            Responses sourced from official admission documents · Always verify with the admissions office
-          </p>
+      {/* ── White block: stats + features ──────────────── */}
+      <section className="max-w-5xl mx-auto px-6 sm:px-10 py-20">
+        <div className="grid grid-cols-3 gap-6 mb-20">
+          {STATS.map(({ value, label }) => (
+            <div key={label}>
+              <p className="font-display font-bold text-5xl sm:text-6xl text-neutral-900 mb-2">{value}</p>
+              <p className="text-xs uppercase tracking-widest text-neutral-400">{label}</p>
+            </div>
+          ))}
         </div>
+
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary-600 mb-3">
+          Why it&apos;s different
+        </p>
+        <h2 className="font-display font-bold text-3xl sm:text-4xl text-neutral-900 mb-14 max-w-lg">
+          Built to be checked, not just trusted.
+        </h2>
+
+        <div className="grid sm:grid-cols-3 gap-x-8 gap-y-12">
+          {FEATURES.map(({ icon: Icon, title, body }) => (
+            <div key={title}>
+              <Icon className="w-5 h-5 text-neutral-900 mb-4" strokeWidth={1.75} />
+              <h3 className="font-semibold text-neutral-900 mb-2">{title}</h3>
+              <p className="text-sm text-neutral-500 leading-relaxed">{body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Black block: how it works + CTA + footer ─────── */}
+      <div className="dot-grid-dark bg-[#111111] text-white">
+        <section className="max-w-5xl mx-auto px-6 sm:px-10 py-24">
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary-400 mb-3">
+            How it works
+          </p>
+
+          <div className="grid sm:grid-cols-2 gap-10 items-center mb-16">
+            <h2 className="font-display font-bold text-3xl sm:text-4xl leading-tight">
+              Three steps to a sourced answer. No pre-written scripts — every answer is retrieved live.
+            </h2>
+            <CornerFrame className="bg-white/[0.02] rounded-2xl aspect-video flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center animate-float">
+                <Sparkles className="w-7 h-7 text-primary-400" />
+              </div>
+            </CornerFrame>
+          </div>
+
+          <div className="grid sm:grid-cols-3 border-t border-white/20 pt-8">
+            {STEPS.map(({ n, icon: Icon, title, body }, i) => (
+              <div
+                key={n}
+                className={`px-0 sm:px-8 ${i > 0 ? 'sm:border-l border-white/20' : ''} ${i > 0 ? 'mt-8 sm:mt-0' : ''}`}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="font-display font-bold text-2xl text-neutral-600">{n}.</span>
+                  <Icon className="w-5 h-5 text-primary-400" strokeWidth={1.75} />
+                </div>
+                <h3 className="font-semibold mb-2">{title}</h3>
+                <p className="text-sm text-neutral-400 leading-relaxed">{body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-t border-white/20">
+          <div className="max-w-5xl mx-auto px-6 sm:px-10 py-24 text-center">
+            <h2 className="font-display font-bold text-4xl sm:text-6xl mb-4">
+              READY WHEN YOU ARE.
+            </h2>
+            <p className="text-neutral-400 mb-8 max-w-md mx-auto">
+              Sign in or create a free account to start asking questions about admissions.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full
+                         bg-primary-300 hover:bg-primary-200 text-neutral-900 font-semibold text-sm
+                         transition-all hover:scale-105 active:scale-95"
+            >
+              Take me to the chatbot
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
+
+        <footer className="border-t border-white/20 px-6 sm:px-10 py-8">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3
+                          text-xs text-neutral-500">
+            <p>&copy; {new Date().getFullYear()} Admission Assistant &middot; University of Karachi</p>
+            <p>Responses sourced from official admission documents &middot; Always verify with the admissions office</p>
+          </div>
+        </footer>
       </div>
     </main>
   )

@@ -30,8 +30,8 @@ const TOPIC_COLORS: Record<string, string> = {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-slate-900 text-white text-xs px-3 py-2 rounded-lg shadow-xl">
-      <p className="text-slate-400 mb-0.5">{label}</p>
+    <div className="bg-neutral-900 text-white text-xs px-3 py-2 rounded-lg shadow-xl">
+      <p className="text-neutral-400 mb-0.5">{label}</p>
       <p className="font-semibold">{payload[0].value} queries</p>
     </div>
   )
@@ -44,10 +44,10 @@ export default function TopicChart({ data }: { data: TopicStat[] }) {
   }))
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div className="bg-white rounded-xl border border-neutral-200 shadow-sm p-5">
       <div className="mb-5">
-        <h3 className="text-sm font-semibold text-slate-800">Topic Breakdown</h3>
-        <p className="text-xs text-slate-500 mt-0.5">What users are asking about</p>
+        <h3 className="text-sm font-semibold text-neutral-800">Topic Breakdown</h3>
+        <p className="text-xs text-neutral-500 mt-0.5">What users are asking about</p>
       </div>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart

@@ -40,10 +40,10 @@ export default function ChatInput({ onSendMessage, disabled, placeholder }: Chat
 
   return (
     <form onSubmit={handleSubmit} className="relative">
-      <div className={`flex items-end gap-2 rounded-3xl border transition-all duration-150 bg-slate-50
+      <div className={`flex items-end gap-2 rounded-3xl border transition-all duration-150 bg-neutral-50
         ${disabled
-          ? 'border-slate-200 opacity-60'
-          : 'border-slate-300 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-500/10 focus-within:bg-white'
+          ? 'border-neutral-200 opacity-60'
+          : 'border-neutral-300 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-500/10 focus-within:bg-white'
         }`}>
         <textarea
           ref={textareaRef}
@@ -53,8 +53,8 @@ export default function ChatInput({ onSendMessage, disabled, placeholder }: Chat
           placeholder={placeholder ?? 'Type your message…'}
           disabled={disabled}
           rows={1}
-          className="flex-1 bg-transparent px-4 py-3.5 text-sm text-slate-900
-                     placeholder-slate-400 resize-none focus:outline-none
+          className="flex-1 bg-transparent px-4 py-3.5 text-sm text-neutral-900
+                     placeholder-neutral-400 resize-none focus:outline-none
                      disabled:cursor-not-allowed"
           style={{ maxHeight: '180px' }}
         />
@@ -64,8 +64,8 @@ export default function ChatInput({ onSendMessage, disabled, placeholder }: Chat
             disabled={!canSend}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 ${
               canSend
-                ? 'bg-slate-900 hover:bg-slate-700 text-white shadow-sm hover:scale-110 active:scale-90'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                ? 'bg-neutral-900 hover:bg-neutral-700 text-white shadow-sm hover:scale-110 active:scale-90'
+                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
             }`}
           >
             <ArrowUp className={`w-4 h-4 transition-transform ${canSend ? '-translate-y-px' : ''}`} strokeWidth={2.5} />

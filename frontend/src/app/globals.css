@@ -4,8 +4,8 @@
 
 /* ─── Base ─────────────────────────────────────────────── */
 body {
-  background-color: #f8fafc; /* slate-50 */
-  color: #0f172a; /* slate-900 */
+  background-color: #fafafa; /* neutral-50 */
+  color: #171717; /* neutral-900 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -19,7 +19,7 @@ body {
 
 /* ─── Animated gradient headline text ────────────────────── */
 .gradient-text {
-  background: linear-gradient(90deg, #bef264, #86efac, #67e8f9, #bef264);
+  background: linear-gradient(90deg, #dafa9c, #86efac, #67e8f9, #dafa9c);
   background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -34,8 +34,8 @@ body {
 /* ─── Scrollbar ─────────────────────────────────────────── */
 ::-webkit-scrollbar          { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: #cbd5e1; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb    { background: #d4d4d4; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
 
 /* ─── Chat message animation ─────────────────────────────── */
 @keyframes slideUp {
@@ -60,23 +60,23 @@ body {
 
 /* ─── Dot-grid background (empty chat state) ─────────────── */
 .dot-grid {
-  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: radial-gradient(circle, #d4d4d4 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
-/* ─── Gradient blob (dark hero accent) ───────────────────── */
-.gradient-blob {
-  background:
-    radial-gradient(circle at 20% 25%, rgba(163, 230, 53, 0.35), transparent 45%),
-    radial-gradient(circle at 80% 15%, rgba(251, 146, 60, 0.20), transparent 45%),
-    radial-gradient(circle at 65% 80%, rgba(56, 189, 248, 0.18), transparent 50%);
-  filter: blur(50px);
-  animation: blobBreathe 10s ease-in-out infinite;
-  transform-origin: center;
-}
-@keyframes blobBreathe {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50%      { transform: scale(1.15) rotate(6deg); }
+/* Low-contrast variant for dark (#111111) sections — keeps overlaid
+   headline text legible instead of competing with bright dots. Layers
+   full-length dashed ruler lines on top of the fine dot pattern, but
+   unevenly spaced (a few lines bunched close together, then one big
+   cell) rather than an equal-square grid — echoing the reference
+   hero's irregular technical-canvas look. Kept fainter than the
+   structural section-divider borders so those still read as
+   intentional, not background noise. */
+.dot-grid-dark {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.15' stroke-width='1' stroke-dasharray='3 6'%3E%3Cline x1='20' y1='0' x2='20' y2='480'/%3E%3Cline x1='52' y1='0' x2='52' y2='480'/%3E%3Cline x1='78' y1='0' x2='78' y2='480'/%3E%3Cline x1='260' y1='0' x2='260' y2='480'/%3E%3Cline x1='520' y1='0' x2='520' y2='480'/%3E%3Cline x1='0' y1='15' x2='640' y2='15'/%3E%3Cline x1='0' y1='40' x2='640' y2='40'/%3E%3Cline x1='0' y1='68' x2='640' y2='68'/%3E%3Cline x1='0' y1='200' x2='640' y2='200'/%3E%3Cline x1='0' y1='380' x2='640' y2='380'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 36px 36px, 640px 480px;
 }
 
 /* ─── Entrance animations ────────────────────────────────── */
