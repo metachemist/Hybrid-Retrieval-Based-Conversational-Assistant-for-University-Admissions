@@ -23,10 +23,8 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSION: int = 1536
     
     # LLM Providers
-    GEMINI_API_KEY: Optional[str] = None
-    ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    GEMINI_API_KEY: Optional[str] = None
     
     # LLM Settings
     LLM_TEMPERATURE: float = 0.3

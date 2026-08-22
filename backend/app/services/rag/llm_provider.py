@@ -4,9 +4,7 @@ LLM Provider Module
 Provides unified interface for multiple LLM providers with automatic fallback.
 Supports:
 - OpenAI GPT (primary — paid key, most reliable for production traffic)
-- Gemini (fallback 1 — free tier, stricter rate limits)
-- Anthropic Claude (fallback 2)
-- Ollama local models (fallback 3)
+- Gemini (fallback — free tier, stricter rate limits)
 """
 import asyncio
 from typing import Optional, List, Dict, AsyncGenerator
@@ -57,9 +55,9 @@ class LLMProviderBase(ABC):
 
 
 class GeminiProvider(LLMProviderBase):
-    """Google Gemini provider — free tier via gemini-2.0-flash."""
+    """Google Gemini provider — free tier via gemini-3.6-flash."""
 
-    def __init__(self, model: str = "gemini-2.0-flash"):
+    def __init__(self, model: str = "gemini-3.6-flash"):
         self.model = model
         self._client = None
 
@@ -69,7 +67,7 @@ class GeminiProvider(LLMProviderBase):
 
     @property
     def is_available(self) -> bool:
-        return settings.GEMINI_API_KEY is not None
+        return bool(settings.GEMINI_API_KEY)
 
     def _get_client(self):
         if self._client is None:
@@ -97,6 +95,10 @@ class GeminiProvider(LLMProviderBase):
                 system_instruction=system_prompt or None,
                 temperature=temperature,
                 max_output_tokens=max_tokens,
+                # This is a straight RAG-answer task, not multi-step reasoning; at the
+                # default thinking level, gemini-3.6-flash spends most of max_output_tokens
+                # on hidden thinking tokens and truncates the actual answer before it starts.
+                thinking_config=types.ThinkingConfig(thinking_level="low"),
             ),
         )
         return response.text
@@ -117,69 +119,14 @@ class GeminiProvider(LLMProviderBase):
                 system_instruction=system_prompt or None,
                 temperature=temperature,
                 max_output_tokens=max_tokens,
+                # This is a straight RAG-answer task, not multi-step reasoning; at the
+                # default thinking level, gemini-3.6-flash spends most of max_output_tokens
+                # on hidden thinking tokens and truncates the actual answer before it starts.
+                thinking_config=types.ThinkingConfig(thinking_level="low"),
             ),
         ):
             if chunk.text:
                 yield chunk.text
-
-
-class AnthropicProvider(LLMProviderBase):
-    """Anthropic Claude provider."""
-    
-    def __init__(self):
-        self._client = None
-    
-    @property
-    def name(self) -> str:
-        return "anthropic"
-    
-    @property
-    def is_available(self) -> bool:
-        return settings.ANTHROPIC_API_KEY is not None
-    
-    def _get_client(self):
-        if self._client is None:
-            import anthropic
-            self._client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
-        return self._client
-    
-    async def generate(
-        self,
-        prompt: str,
-        system_prompt: str = "",
-        temperature: float = 0.3,
-        max_tokens: int = 1024
-    ) -> str:
-        client = self._get_client()
-        
-        response = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=max_tokens,
-            temperature=temperature,
-            system=system_prompt,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        
-        return response.content[0].text
-    
-    async def generate_stream(
-        self,
-        prompt: str,
-        system_prompt: str = "",
-        temperature: float = 0.3,
-        max_tokens: int = 1024
-    ) -> AsyncGenerator[str, None]:
-        client = self._get_client()
-        
-        async with client.messages.stream(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=max_tokens,
-            temperature=temperature,
-            system=system_prompt,
-            messages=[{"role": "user", "content": prompt}]
-        ) as stream:
-            async for text in stream.text_stream:
-                yield text
 
 
 class OpenAIProvider(LLMProviderBase):
@@ -194,7 +141,7 @@ class OpenAIProvider(LLMProviderBase):
     
     @property
     def is_available(self) -> bool:
-        return settings.OPENAI_API_KEY is not None
+        return bool(settings.OPENAI_API_KEY)
     
     def _get_client(self):
         if self._client is None:
@@ -248,90 +195,19 @@ class OpenAIProvider(LLMProviderBase):
                 yield chunk.choices[0].delta.content
 
 
-class OllamaProvider(LLMProviderBase):
-    """Ollama local model provider (zero-cost fallback)."""
-    
-    def __init__(self, model: str = "llama3:8b"):
-        self.model = model
-        self._client = None
-    
-    @property
-    def name(self) -> str:
-        return "ollama"
-    
-    @property
-    def is_available(self) -> bool:
-        # Ollama is always "available" but may not be running
-        return True
-    
-    def _get_client(self):
-        if self._client is None:
-            import ollama
-            self._client = ollama.AsyncClient(host=settings.OLLAMA_BASE_URL)
-        return self._client
-    
-    async def generate(
-        self,
-        prompt: str,
-        system_prompt: str = "",
-        temperature: float = 0.3,
-        max_tokens: int = 1024
-    ) -> str:
-        client = self._get_client()
-        
-        response = await client.generate(
-            model=self.model,
-            prompt=prompt,
-            system=system_prompt,
-            options={
-                "temperature": temperature,
-                "num_predict": max_tokens
-            }
-        )
-        
-        return response["response"]
-    
-    async def generate_stream(
-        self,
-        prompt: str,
-        system_prompt: str = "",
-        temperature: float = 0.3,
-        max_tokens: int = 1024
-    ) -> AsyncGenerator[str, None]:
-        client = self._get_client()
-        
-        response = await client.generate(
-            model=self.model,
-            prompt=prompt,
-            system=system_prompt,
-            stream=True,
-            options={
-                "temperature": temperature,
-                "num_predict": max_tokens
-            }
-        )
-        
-        async for chunk in response:
-            yield chunk["response"]
-
-
 class LLMProvider:
     """
     Unified LLM provider with automatic fallback.
 
     Tries providers in order:
     1. OpenAI (primary — paid key, not subject to free-tier rate limits)
-    2. Gemini (fallback 1, free tier)
-    3. Anthropic (fallback 2)
-    4. Ollama (fallback 3, local)
+    2. Gemini (fallback, free tier)
     """
 
     def __init__(self):
         self.providers: List[LLMProviderBase] = [
             OpenAIProvider(),       # paid — primary
-            GeminiProvider(),       # fallback 1 (free tier)
-            AnthropicProvider(),    # fallback 2
-            OllamaProvider(),       # fallback 3 (local)
+            GeminiProvider(),       # fallback (free tier)
         ]
         self._failure_counts: Dict[str, int] = {p.name: 0 for p in self.providers}
         self._circuit_breaker_threshold = 3  # failures before skipping provider
