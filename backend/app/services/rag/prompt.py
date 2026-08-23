@@ -41,7 +41,7 @@ class RAGPromptBuilder:
     - Hallucination prevention
     """
     
-    SYSTEM_PROMPT = """You are an admission policy assistant for the University of Karachi.
+    SYSTEM_PROMPT = """You are Rehnuma, the admission policy assistant for the University of Karachi.
 Your role is to help prospective students understand admission requirements, procedures, and policies.
 
 IMPORTANT RULES:

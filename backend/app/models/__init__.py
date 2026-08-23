@@ -7,9 +7,9 @@ from datetime import datetime
 from typing import Optional, List
 from sqlalchemy import (
     Column, String, Integer, DateTime, ForeignKey,
-    Text, Boolean, Float, event
+    Text, Boolean, Float, event, Computed, Index
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
 from sqlalchemy.orm import relationship, validates
 from pgvector.sqlalchemy import Vector
 from ..core.database import Base
@@ -68,8 +68,31 @@ class Chunk(Base):
     chunk_order = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Postgres-generated (see migration 7c3e1f9a2b58): to_tsvector() is
+    # computed at write time so keyword search can hit a GIN index instead of
+    # re-tokenizing every chunk on every query. Never assign to this.
+    content_tsv = Column(
+        TSVECTOR,
+        Computed("to_tsvector('english', content)", persisted=True),
+        nullable=True,
+    )
+
     # Relationship to document
     document = relationship("Document", back_populates="chunks")
+
+    # Declared here as well as in migration 7c3e1f9a2b58 so that a database
+    # built by init_db()/create_all() gets the same indexes as a migrated one.
+    # The deployed database was built the create_all() way and then stamped,
+    # which is exactly why it reached production with no retrieval indexes at all.
+    __table_args__ = (
+        Index('chunks_doc_id_idx', 'doc_id'),
+        Index('chunks_content_tsv_idx', 'content_tsv', postgresql_using='gin'),
+        Index(
+            'chunks_embedding_hnsw_idx', 'embedding',
+            postgresql_using='hnsw',
+            postgresql_ops={'embedding': 'vector_cosine_ops'},
+        ),
+    )
 
     def __repr__(self):
         return f"<Chunk(id={self.id}, doc_id={self.doc_id}, page={self.page_start})>"

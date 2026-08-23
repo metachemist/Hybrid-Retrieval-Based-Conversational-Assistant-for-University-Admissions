@@ -53,7 +53,7 @@ function ResetPasswordForm() {
           <GraduationCap className="w-5 h-5 text-white" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-neutral-900 leading-none">Admission Assistant</p>
+          <p className="text-sm font-semibold text-neutral-900 leading-none">Rehnuma</p>
           <p className="text-xs text-neutral-500 leading-none mt-0.5">University of Karachi</p>
         </div>
       </div>

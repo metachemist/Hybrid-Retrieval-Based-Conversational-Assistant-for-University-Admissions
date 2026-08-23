@@ -61,7 +61,7 @@ export default function RegisterPage() {
             Start your<br />journey
           </h1>
           <p className="text-neutral-500 text-sm leading-relaxed max-w-xs mx-auto animate-in-up stagger-1">
-            Create an account to access the University of Karachi admissions assistant.
+            Create an account to access Rehnuma, the University of Karachi admissions assistant.
             Admins use a private key during registration.
           </p>
           <div className="flex gap-3 mt-10 justify-center flex-wrap">
@@ -87,7 +87,7 @@ export default function RegisterPage() {
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-neutral-900 leading-none">Admission Assistant</p>
+              <p className="text-sm font-semibold text-neutral-900 leading-none">Rehnuma</p>
               <p className="text-xs text-neutral-500 leading-none mt-0.5">University of Karachi</p>
             </div>
           </div>

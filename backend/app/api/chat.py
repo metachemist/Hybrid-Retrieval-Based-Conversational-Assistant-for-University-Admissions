@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List, Dict
+import anyio
 import time
 import json
 
@@ -27,7 +28,10 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     """Request model for chat endpoint."""
     query: str
-    top_k: Optional[int] = 25
+    # Retrieval pulls top_k*2 from each of the keyword and semantic arms, and
+    # the prompt builder then keeps only max_chunks (10). At 25 this fetched
+    # ~100 full chunk bodies from Neon to discard 90% of them.
+    top_k: Optional[int] = 10
     use_hybrid: Optional[bool] = True
     stream: Optional[bool] = False
 
@@ -58,7 +62,7 @@ normalizer = RomanUrduNormalizer(use_translation=False)
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(
+def chat(
     request: ChatRequest,
     db: Session = Depends(get_db),
     client_request: Request = None,
@@ -66,7 +70,12 @@ async def chat(
 ):
     """
     Process a user query and generate a RAG-based response.
-    
+
+    Deliberately a sync `def`: retrieval, embedding and every database call
+    below are blocking, synchronous I/O. Declared `async`, they ran directly on
+    the event loop and serialized all concurrent requests behind each other.
+    FastAPI runs a sync endpoint in a worker thread instead.
+
     This endpoint:
     1. Detects query language (English/Roman Urdu)
     2. Normalizes Roman Urdu queries
@@ -122,13 +131,19 @@ async def chat(
     chunks = [chunk for chunk, score, meta in results]
     retrieval_scores = {str(chunk.id): float(score) for chunk, score, meta in results}
     
-    # Build document title map
+    # Build document title map.
+    # One query for the distinct documents, not one per chunk: the retrieved
+    # chunks routinely come from a handful of documents (25 chunks spanned 4
+    # documents in practice), and each per-chunk lookup was a full round trip
+    # to Neon.
     from ..models import Document
-    documents = {}
-    for chunk, score, meta in results:
-        doc = db.query(Document).filter_by(id=chunk.doc_id).first()
-        if doc:
-            documents[str(chunk.doc_id)] = doc.title
+    doc_ids = {chunk.doc_id for chunk, score, meta in results}
+    documents = {
+        str(doc_id): title
+        for doc_id, title in db.query(Document.id, Document.title).filter(
+            Document.id.in_(doc_ids)
+        )
+    }
     
     # Step 5: Build RAG prompt
     system_prompt, user_prompt, citations = create_rag_prompt(
@@ -143,11 +158,18 @@ async def chat(
     provider_name = llm_provider.get_current_provider()
     
     try:
-        response_text = await llm_provider.generate(
-            prompt=user_prompt,
-            system_prompt=system_prompt,
-            temperature=settings.LLM_TEMPERATURE,
-            max_tokens=2048 if is_broad else settings.LLM_MAX_TOKENS
+        # The provider interface is async but this endpoint is sync (see
+        # docstring), so run the coroutine to completion on a loop of its own in
+        # this worker thread. The generate() call is the request's longest wait,
+        # and blocking a worker thread for it - rather than the event loop -
+        # is the whole point of the sync endpoint.
+        response_text = anyio.run(
+            lambda: llm_provider.generate(
+                prompt=user_prompt,
+                system_prompt=system_prompt,
+                temperature=settings.LLM_TEMPERATURE,
+                max_tokens=2048 if is_broad else settings.LLM_MAX_TOKENS,
+            )
         )
     except Exception as e:
         # Fallback: return retrieved chunks directly
@@ -238,11 +260,13 @@ async def chat_stream(
         
         from ..models import Document as DocumentModel
         chunks = [chunk for chunk, score, meta in results]
-        documents = {}
-        for chunk, score, meta in results:
-            doc = db.query(DocumentModel).filter_by(id=chunk.doc_id).first()
-            if doc:
-                documents[str(chunk.doc_id)] = doc.title
+        doc_ids = {chunk.doc_id for chunk, score, meta in results}
+        documents = {
+            str(doc_id): title
+            for doc_id, title in db.query(
+                DocumentModel.id, DocumentModel.title
+            ).filter(DocumentModel.id.in_(doc_ids))
+        }
         
         system_prompt, user_prompt, _ = create_rag_prompt(query, chunks, documents)
         

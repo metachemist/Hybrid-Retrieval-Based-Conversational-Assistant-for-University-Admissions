@@ -1,6 +1,6 @@
-# Admission Policy Chatbot
+# Rehnuma
 
-A hybrid retrieval-based conversational assistant for University of Karachi admission policies.
+Rehnuma is a hybrid retrieval-based conversational assistant for University of Karachi admission policies.
 
 ## Overview
 
@@ -11,7 +11,7 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 - **Hybrid Retrieval**: Combines keyword search (BM25) with semantic vector search using Reciprocal Rank Fusion (RRF)
 - **Multilingual Support**: Handles English, Roman Urdu, and code-mixed query
 - **Citation-Grounded Responses**: All answers include citations to source documents
-- **LLM Fallback Chain**: Automatic failover — Gemini → Anthropic → OpenAI → Ollama
+- **LLM Fallback Chain**: Automatic failover from Gemini to Anthropic to OpenAI to Ollama
 - **Authentication**: User login, registration, and forgot/reset password flows
 - **Admin Panel**: Document management and ingestion interface
 - **Caching & Rate Limiting**: Redis-backed caching with per-minute/per-hour rate limits
@@ -38,7 +38,7 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 - Node.js 20+
 - PostgreSQL 15+ with pgvector extension
 - Redis
-- At least one LLM API key (Gemini recommended — free tier)
+- At least one LLM API key (Gemini recommended, free tier)
 
 ### Backend Setup
 
@@ -54,7 +54,7 @@ pip install -r requirements.txt
 
 # Copy environment template
 cp .env.example .env
-# Edit .env — set DATABASE_URL and at least one LLM API key
+# Edit .env: set DATABASE_URL and at least one LLM API key
 
 # Run database migrations
 alembic upgrade head
@@ -71,7 +71,7 @@ npm install
 npm run dev
 ```
 
-Visit `http://localhost:3000` to access the chatbot.
+Visit `http://localhost:3000` to access Rehnuma.
 
 ## Environment Variables
 
@@ -225,7 +225,7 @@ npm run lint
 | Backend | Render |
 | Database | Neon |
 
-Backend is deployed on Render (Docker web service) at `https://university-admissions-chatbot.onrender.com` — Railway was tried first but hit deployment errors. Set `API_URL` in the Vercel environment to point to the Render backend.
+Backend is deployed on Render (Docker web service) at `https://university-admissions-chatbot.onrender.com`. Railway was tried first but hit deployment errors. Set `API_URL` in the Vercel environment to point to the Render backend.
 
 > Free-tier Render instances spin down after inactivity; the first request after idling can take 50+ seconds to respond.
 

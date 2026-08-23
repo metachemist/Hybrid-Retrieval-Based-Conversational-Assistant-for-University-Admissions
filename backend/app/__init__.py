@@ -1,5 +1,5 @@
 """
-Admission Policy Chatbot - FastAPI Backend
+Rehnuma - University of Karachi admissions assistant, FastAPI Backend
 """
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +17,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
-        description="Hybrid RAG-based conversational assistant for university admission policies"
+        description="Rehnuma: hybrid RAG-based conversational assistant for University of Karachi admission policies"
     )
 
     # Rate limiting

@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import ChatMessage from '@/components/ChatMessage'
 import ChatInput from '@/components/ChatInput'
 import TypingIndicator from '@/components/TypingIndicator'
-import { GraduationCap, LayoutDashboard, LogOut, Sparkles } from 'lucide-react'
+import GenerativeGrid, { AMBIENT_FIELD } from '@/components/GenerativeGrid'
+import { GraduationCap, LayoutDashboard, LogOut, ArrowUpRight } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 
@@ -37,6 +38,10 @@ const SUGGESTIONS = [
   'Fee structure for this year?',
 ]
 
+const NAV_ACTION =
+  'flex items-center gap-1.5 rounded px-2.5 py-1.5 font-mono text-[12px] uppercase tracking-tighter2 ' +
+  'text-muted transition-colors hover:bg-neutral-100 hover:text-neutral-900'
+
 export default function ChatPage() {
   const { user, logout, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -58,8 +63,8 @@ export default function ChatPage() {
 
   if (authLoading || !user) {
     return (
-      <main className="h-screen flex items-center justify-center bg-neutral-50">
-        <span className="w-8 h-8 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
+      <main className="flex h-screen items-center justify-center bg-neutral-50">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900" />
       </main>
     )
   }
@@ -69,71 +74,68 @@ export default function ChatPage() {
     setError(null)
     setIsLoading(true)
 
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      role: 'user',
-      content: query,
-      timestamp: new Date(),
-    }])
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        role: 'user',
+        content: query,
+        timestamp: new Date(),
+      },
+    ])
 
     try {
       const data = await api.chat({ query, top_k: 10, use_hybrid: true })
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response,
-        citations: data.citations,
-        timestamp: new Date(),
-        language: data.language,
-        latency_ms: data.latency_ms,
-        llm_provider: data.llm_provider,
-      }])
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: data.response,
+          citations: data.citations,
+          timestamp: new Date(),
+          language: data.language,
+          latency_ms: data.latency_ms,
+          llm_provider: data.llm_provider,
+        },
+      ])
     } catch (err) {
       console.error('Error sending message:', err)
       setError('Failed to get a response. Please try again.')
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: "I'm sorry, I encountered an error while processing your request. Please try again later.",
-        timestamp: new Date(),
-      }])
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content:
+            "I'm sorry, I encountered an error while processing your request. Please try again later.",
+          timestamp: new Date(),
+        },
+      ])
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <main className="flex flex-col h-screen bg-neutral-50 overflow-hidden">
+    <main className="flex h-screen flex-col overflow-hidden bg-white">
+      {/* ══ Nav rail — squared, matching the landing header ══ */}
+      <header className="flex-shrink-0 border-b border-neutral-200 bg-white">
+        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-neutral-900">
+              <GraduationCap className="h-4 w-4 text-primary-300" strokeWidth={2} />
+            </span>
+            <span className="display-lg text-[15px] leading-none text-neutral-900">
+              Rehnuma
+            </span>
+          </Link>
 
-      {/* ── Header ──────────────────────────────────────── */}
-      <header className="flex-shrink-0 bg-neutral-50 px-3 pt-3 animate-in-down">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4
-                        rounded-full bg-neutral-900 text-white px-5 py-2.5 shadow-lg
-                        border border-white/5">
-          {/* Brand */}
-          <div className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-full bg-neutral-800 border border-white/10
-                            flex items-center justify-center transition-transform duration-300
-                            group-hover:rotate-12 group-hover:scale-110">
-              <GraduationCap className="w-4.5 h-4.5 text-primary-400" strokeWidth={2} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-none text-white">Admission Assistant</p>
-              <p className="text-xs text-neutral-400 leading-none mt-0.5">University of Karachi</p>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {user.role === 'admin' && (
-              <Link
-                href="/admin"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                           text-neutral-300 hover:text-white hover:bg-white/5 transition-all
-                           hover:scale-105 active:scale-95"
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                Dashboard
+              <Link href="/admin" className={NAV_ACTION}>
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                <span className="max-sm:hidden">Dashboard</span>
               </Link>
             )}
             <button
@@ -143,75 +145,83 @@ export default function ChatPage() {
                 router.push('/')
               }}
               title={`Signed in as ${user.email}`}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                         text-neutral-300 hover:text-white hover:bg-white/5 transition-all
-                         hover:scale-105 active:scale-95"
+              className={NAV_ACTION}
             >
-              <LogOut className="w-3.5 h-3.5" />
-              Sign out
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="max-sm:hidden">Sign out</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* ── Messages ─────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
+      {/* ══ Messages ═════════════════════════════════════════ */}
+      <div className={`flex-1 ${messages.length === 0 ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {messages.length === 0 ? (
-          /* Empty state */
-          <div className="dot-grid h-full flex items-center justify-center px-4 py-8">
-            <div className="dot-grid-dark relative w-full max-w-2xl overflow-hidden rounded-3xl
-                            bg-[#111111] border border-white/5 shadow-xl
-                            px-8 py-14 text-center">
-              <div className="relative z-10 max-w-lg mx-auto">
-                {/* Icon */}
-                <div className="relative inline-flex mb-6 animate-in-pop">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 backdrop-blur
-                                  flex items-center justify-center animate-float">
-                    <Sparkles className="w-7 h-7 text-primary-400" />
+          // h-full, not min-h-full: the panel sizes itself to the pane rather
+          // than overflowing it. Everything inside scales with vh so it stays
+          // whole on short viewports instead of producing a scrollbar.
+          <div className="flex h-full items-center justify-center py-[clamp(0.5rem,2vh,1.5rem)]">
+            {/* Same max-w + padding as the header and composer, so the panel's
+                edges land on the one shared content column */}
+            <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
+              <div className="relative max-h-full overflow-hidden rounded-sm bg-ink text-white">
+                <GenerativeGrid
+                  className="pointer-events-none absolute inset-0 h-full w-full"
+                  {...AMBIENT_FIELD}
+                />
+
+                <div className="relative z-10 px-7 py-[clamp(1.25rem,4vh,3rem)] sm:px-12">
+                  <p className="label-mono mb-[clamp(0.5rem,2vh,1.25rem)]">Ready when you are</p>
+                  <h2 className="display-xl text-[min(clamp(1.9rem,4.6vw,3rem),5.5vh)]">
+                    Ask me anything.
+                  </h2>
+                  <p
+                    className="mt-[clamp(0.5rem,2vh,1.25rem)] max-w-md text-[15px] leading-[1.7]
+                             text-neutral-400 [@media(max-height:620px)]:hidden"
+                  >
+                    Rehnuma has access to official University of Karachi admission documents. Try
+                    asking about eligibility, fees, deadlines, or required materials.
+                  </p>
+
+                  {/* Suggestions as a numbered index, not pills */}
+                  <div className="mt-[clamp(1rem,3.2vh,2.25rem)] border-t border-white/15">
+                    {SUGGESTIONS.map((q, i) => (
+                      <button
+                        key={q}
+                        onClick={() => sendMessage(q)}
+                        className="group flex w-full items-center gap-4 border-b border-white/15 text-left
+                                 py-[clamp(0.5rem,1.7vh,0.875rem)]
+                                 transition-colors hover:bg-white/[0.04]"
+                      >
+                        <span className="font-mono text-[12px] tracking-tighter2 text-primary-300">
+                          0{i + 1}
+                        </span>
+                        <span className="flex-1 text-[14px] text-neutral-300 transition-colors group-hover:text-white">
+                          {q}
+                        </span>
+                        <ArrowUpRight
+                          className="h-4 w-4 flex-shrink-0 text-muted transition-all
+                                   group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary-300"
+                        />
+                      </button>
+                    ))}
                   </div>
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary-400
-                                   border-2 border-[#111111] animate-pulse" />
-                </div>
-
-                {/* Heading */}
-                <h2 className="font-display font-bold text-5xl sm:text-6xl mb-3
-                               gradient-text animate-in-up stagger-1">
-                  Ask me anything
-                </h2>
-                <p className="text-sm text-neutral-400 mb-8 leading-relaxed animate-in-up stagger-2">
-                  I have access to official University of Karachi admission documents.
-                  Try asking about eligibility, fees, deadlines, or required materials.
-                </p>
-
-                {/* Suggestion chips */}
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {SUGGESTIONS.map((q, i) => (
-                    <button
-                      key={i}
-                      onClick={() => sendMessage(q)}
-                      style={{ animationDelay: `${0.3 + i * 0.08}s` }}
-                      className="animate-in-up px-4 py-2 bg-white/5 border border-white/10 text-neutral-200
-                                 rounded-full text-xs font-medium hover:border-primary-300
-                                 hover:text-neutral-900 hover:bg-primary-300
-                                 transition-all duration-150 hover:scale-105 active:scale-95"
-                    >
-                      {q}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-            {messages.map(message => (
+          <div className="mx-auto max-w-4xl space-y-7 px-4 py-8 sm:px-6">
+            {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
             {isLoading && <TypingIndicator />}
             {error && (
               <div className="flex justify-center">
-                <p className="text-xs text-red-600 bg-red-50 border border-red-200
-                              px-4 py-2 rounded-full">
+                <p
+                  className="rounded-sm border border-red-200 bg-red-50 px-3 py-2
+                              font-mono text-[12px] uppercase tracking-tighter2 text-red-600"
+                >
                   {error}
                 </p>
               </div>
@@ -221,16 +231,16 @@ export default function ChatPage() {
         )}
       </div>
 
-      {/* ── Input ────────────────────────────────────────── */}
+      {/* ══ Composer ═════════════════════════════════════════ */}
       <div className="flex-shrink-0 border-t border-neutral-200 bg-white">
-        <div className="max-w-4xl mx-auto px-4 py-3">
+        <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6">
           <ChatInput
             onSendMessage={sendMessage}
             disabled={isLoading}
             placeholder="Ask about admission requirements, deadlines, documents…"
           />
-          <p className="text-center text-xs text-neutral-400 mt-2">
-            Responses sourced from official admission documents · Always verify with the admissions office
+          <p className="label-mono mt-3 text-center text-[11px]">
+            Sourced from official documents · Always verify with the admissions office
           </p>
         </div>
       </div>

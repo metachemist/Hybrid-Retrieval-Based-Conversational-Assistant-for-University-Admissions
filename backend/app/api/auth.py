@@ -32,10 +32,10 @@ def _send_reset_email(to_email: str, token: str) -> None:
         )
         return
 
-    subject = "Reset your password — UoK Admission Assistant"
+    subject = "Reset your password for Rehnuma"
     body = f"""Hi,
 
-You requested a password reset for your University of Karachi Admission Assistant account.
+You requested a password reset for your Rehnuma account (University of Karachi admissions assistant).
 
 Click the link below to set a new password (valid for 1 hour):
 
@@ -43,7 +43,7 @@ Click the link below to set a new password (valid for 1 hour):
 
 If you did not request this, please ignore this email.
 
-— UoK Admission Assistant
+Rehnuma, University of Karachi admissions assistant
 """
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject

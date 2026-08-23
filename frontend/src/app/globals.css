@@ -10,25 +10,35 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Fonts ─────────────────────────────────────────────── */
+/* ─── Display type ───────────────────────────────────────
+   The reference's signature headline treatment: oversized uppercase
+   grotesque with the line-height pulled under 1 and tracking negative, so
+   multi-line headings lock into a solid typographic block. */
 @layer utilities {
-  .font-display {
+  .display-xl {
     font-family: var(--font-display), system-ui, sans-serif;
+    text-transform: uppercase;
+    font-weight: 600;
+    line-height: 0.88;
+    letter-spacing: -0.03em;
   }
-}
-
-/* ─── Animated gradient headline text ────────────────────── */
-.gradient-text {
-  background: linear-gradient(90deg, #dafa9c, #86efac, #67e8f9, #dafa9c);
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: gradientShift 6s ease-in-out infinite;
-}
-@keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50%      { background-position: 100% 50%; }
+  .display-lg {
+    font-family: var(--font-display), system-ui, sans-serif;
+    text-transform: uppercase;
+    font-weight: 600;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+  }
+  /* 14px uppercase mono eyebrow. Tracking is NEGATIVE here — unusual for
+     small caps, and a large part of why the reference reads "technical"
+     rather than "editorial". */
+  .label-mono {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    color: #737776;
+  }
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────── */
@@ -58,25 +68,44 @@ body {
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-/* ─── Dot-grid background (empty chat state) ─────────────── */
+/* ─── Dot grid ───────────────────────────────────────────
+   Matched to the reference: 2px dots on a 56px pitch. The wide, sparse
+   spacing is what makes it read as a deliberate drafting grid rather than
+   a noisy texture — a finer pitch turns to visual mush behind text. */
 .dot-grid {
-  background-image: radial-gradient(circle, #d4d4d4 1px, transparent 1px);
-  background-size: 36px 36px;
+  background-image: radial-gradient(#d4d4d4 2px, transparent 2px);
+  background-size: 56px 56px;
+}
+.dot-grid-dark {
+  background-image: radial-gradient(rgba(250, 250, 250, 0.2) 2px, transparent 2px);
+  background-size: 56px 56px;
 }
 
-/* Low-contrast variant for dark (#111111) sections — keeps overlaid
-   headline text legible instead of competing with bright dots. Layers
-   full-length dashed ruler lines on top of the fine dot pattern, but
-   unevenly spaced (a few lines bunched close together, then one big
-   cell) rather than an equal-square grid — echoing the reference
-   hero's irregular technical-canvas look. Kept fainter than the
-   structural section-divider borders so those still read as
-   intentional, not background noise. */
-.dot-grid-dark {
-  background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Cg stroke='%23ffffff' stroke-opacity='0.15' stroke-width='1' stroke-dasharray='3 6'%3E%3Cline x1='20' y1='0' x2='20' y2='480'/%3E%3Cline x1='52' y1='0' x2='52' y2='480'/%3E%3Cline x1='78' y1='0' x2='78' y2='480'/%3E%3Cline x1='260' y1='0' x2='260' y2='480'/%3E%3Cline x1='520' y1='0' x2='520' y2='480'/%3E%3Cline x1='0' y1='15' x2='640' y2='15'/%3E%3Cline x1='0' y1='40' x2='640' y2='40'/%3E%3Cline x1='0' y1='68' x2='640' y2='68'/%3E%3Cline x1='0' y1='200' x2='640' y2='200'/%3E%3Cline x1='0' y1='380' x2='640' y2='380'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 36px 36px, 640px 480px;
+/* ─── Scroll reveal ──────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ─── Animated gradient headline text (auth split-screens) ─ */
+.gradient-text {
+  background: linear-gradient(90deg, #dafa9c, #86efac, #67e8f9, #dafa9c);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradientShift 6s ease-in-out infinite;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
 }
 
 /* ─── Entrance animations ────────────────────────────────── */
@@ -107,7 +136,7 @@ body {
 .stagger-4 { animation-delay: 0.24s; }
 .stagger-5 { animation-delay: 0.30s; }
 
-/* ─── Gentle float (hero icon) ────────────────────────────── */
+/* ─── Gentle float ───────────────────────────────────────── */
 @keyframes float {
   0%, 100% { transform: translateY(0);    }
   50%      { transform: translateY(-6px); }
@@ -116,8 +145,14 @@ body {
   animation: float 3.4s ease-in-out infinite;
 }
 
-/* ─── Smooth focus ring ──────────────────────────────────── */
+/* ─── Reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .animate-in-up, .animate-in-down, .animate-in-pop, .animate-float { animation: none; }
+}
+
+/* ─── Smooth focus ──────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #6fa61f;
   outline-offset: 2px;
 }

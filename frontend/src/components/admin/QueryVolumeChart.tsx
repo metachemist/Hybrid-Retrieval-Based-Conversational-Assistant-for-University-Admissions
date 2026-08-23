@@ -1,77 +1,93 @@
 'use client'
 
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import ChartCard, { ChartTooltip } from './ChartCard'
+import { SERIES_1, GRID, SURFACE, AXIS_TICK } from './chartTokens'
 
 interface Point {
   date: string
   count: number
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-neutral-900 text-white text-xs px-3 py-2 rounded-lg shadow-xl">
-      <p className="text-neutral-400 mb-0.5">{label}</p>
-      <p className="font-semibold">{payload[0].value} queries</p>
-    </div>
+const DAY_MS = 86_400_000
+
+// Dates arrive as plain YYYY-MM-DD. Parsing those with `new Date(...)` yields
+// UTC midnight, which formats as the *previous* day in any negative-offset
+// timezone — so every key and label below stays explicitly in UTC.
+const keyOf = (t: number) => new Date(t).toISOString().slice(0, 10)
+
+const labelOf = (t: number) =>
+  new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+
+/**
+ * The API returns only the days that had traffic, so a 30-day window can come
+ * back as 6 rows. Plotting those directly spaces them evenly, which makes a
+ * 12-day gap look identical to a 1-day gap and lets the line interpolate
+ * through days that had no queries at all.
+ *
+ * Filling the window makes the axis a real timeline: an absent day is a zero,
+ * because we know it had no queries — that is a measurement, not a gap.
+ */
+function fillWindow(data: Point[], days: number) {
+  const counts = new Map(data.map(d => [d.date, d.count]))
+  const end = Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate()
   )
+  const start = end - (days - 1) * DAY_MS
+
+  const series = []
+  for (let t = start; t <= end; t += DAY_MS) {
+    series.push({ date: keyOf(t), label: labelOf(t), count: counts.get(keyOf(t)) ?? 0 })
+  }
+  return series
 }
 
-export default function QueryVolumeChart({ data }: { data: Point[] }) {
-  const formatted = data.map(d => ({
-    ...d,
-    label: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-  }))
+export default function QueryVolumeChart({ data, days }: { data: Point[]; days: number }) {
+  const series = fillWindow(data, days)
 
   return (
-    <div className="bg-white rounded-xl border border-neutral-200 shadow-sm p-5">
-      <div className="mb-5">
-        <h3 className="text-sm font-semibold text-neutral-800">Query Volume</h3>
-        <p className="text-xs text-neutral-500 mt-0.5">Daily chatbot interactions over time</p>
-      </div>
+    <ChartCard
+      title="Query volume"
+      subtitle="Daily chatbot interactions over time"
+      columns={['Date', 'Queries']}
+      rows={series.map(d => ({ label: d.label, value: d.count }))}
+    >
       <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={formatted} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
-          <defs>
-            <linearGradient id="queryGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#2563eb" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+        <AreaChart data={series} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+          <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 10, fill: '#94a3b8' }}
+            tick={AXIS_TICK}
             axisLine={false}
             tickLine={false}
-            interval="preserveStartEnd"
+            // Let recharts drop labels that would collide rather than
+            // cramming 30 of them edge to edge.
+            minTickGap={44}
           />
-          <YAxis
-            tick={{ fontSize: 10, fill: '#94a3b8' }}
-            axisLine={false}
-            tickLine={false}
-            allowDecimals={false}
-          />
-          <Tooltip content={<CustomTooltip />} />
+          <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} />
+          <Tooltip content={<ChartTooltip />} cursor={{ stroke: GRID }} />
+          {/* Linear, not monotone: these are daily counts that jump between 0
+              and 8: a spline through them draws values that were never
+              measured. */}
           <Area
-            type="monotone"
+            type="linear"
             dataKey="count"
             name="Queries"
-            stroke="#2563eb"
+            stroke={SERIES_1}
             strokeWidth={2}
-            fill="url(#queryGrad)"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            fill={SERIES_1}
+            fillOpacity={0.1}
             dot={false}
-            activeDot={{ r: 4, fill: '#2563eb', strokeWidth: 0 }}
+            // r=4 → an 8px marker, with a 2px surface ring so it stays legible
+            // where it sits on the line
+            activeDot={{ r: 4, fill: SERIES_1, stroke: SURFACE, strokeWidth: 2 }}
           />
         </AreaChart>
       </ResponsiveContainer>
-    </div>
+    </ChartCard>
   )
 }

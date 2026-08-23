@@ -22,7 +22,12 @@ down_revision: Union[str, Sequence[str], None] = '1a70cd8d8d31'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-EMBEDDING_DIMENSION = 768  # gemini-embedding-001
+# Was 768 (gemini-embedding-001). The project switched to OpenAI
+# text-embedding-3-small before this migration was ever executed against a
+# real database, so correcting the constant here keeps a from-scratch
+# migration run in step with app.models. Revision 7c3e1f9a2b58 repairs any
+# database that did get built at 768.
+EMBEDDING_DIMENSION = 1536  # openai text-embedding-3-small
 
 
 def upgrade() -> None:

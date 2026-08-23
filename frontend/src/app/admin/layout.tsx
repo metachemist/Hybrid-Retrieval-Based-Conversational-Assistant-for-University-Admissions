@@ -11,6 +11,10 @@ const navItems = [
   { href: '/admin/documents', label: 'Documents', icon: FileText },
 ]
 
+const FOOTER_LINK =
+  'flex w-full items-center gap-2.5 rounded-sm px-3 py-2 font-mono text-[12px] uppercase ' +
+  'tracking-tighter2 text-muted transition-colors hover:bg-white/5 hover:text-white'
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoading } = useAuth()
   const router = useRouter()
@@ -28,92 +32,75 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
-
-      {/* ── Sidebar ─────────────────────────────────────── */}
-      <aside className="w-60 bg-[#111111] flex flex-col flex-shrink-0 animate-in-down">
-
-        {/* Logo */}
-        <div className="px-5 py-5 border-b border-white/5">
-          <div className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center shadow-inner
-                            transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110">
-              <GraduationCap className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-white leading-none">Admin Console</p>
-              <p className="text-xs text-neutral-500 leading-none mt-0.5">UoK Chatbot</p>
-            </div>
-          </div>
+      {/* ══ Sidebar ══════════════════════════════════════════ */}
+      {/* Sticky, viewport-tall: the page itself is the scroller, so without this
+          the nav scrolls away and leaves an empty column beside the content. */}
+      <aside className="sticky top-0 flex h-screen w-60 flex-shrink-0 flex-col bg-ink">
+        <div className="border-b border-white/10 px-5 py-4">
+          <Link href="/admin" className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary-300">
+              <GraduationCap className="h-4 w-4 text-neutral-900" strokeWidth={2} />
+            </span>
+            <span className="display-lg text-[14px] leading-none text-white">Admin Console</span>
+          </Link>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          <p className="px-3 mb-2 text-[10px] font-semibold text-neutral-600 uppercase tracking-widest">
-            Navigation
-          </p>
-          {navItems.map(({ href, label, icon: Icon }, i) => {
-            const active = pathname === href
-            return (
-              <Link
-                key={href}
-                href={href}
-                style={{ animationDelay: `${i * 0.06}s` }}
-                className={`animate-in-up flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium
-                            transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                  active
-                    ? 'bg-white/10 text-white'
-                    : 'text-neutral-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-primary-400' : ''}`} />
-                {label}
-                {active && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />
-                )}
-              </Link>
-            )
-          })}
+        <nav className="flex-1 px-3 py-5">
+          <p className="label-mono mb-3 px-3">Navigation</p>
+          <div className="space-y-0.5">
+            {navItems.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex items-center gap-2.5 rounded-sm px-3 py-2.5 text-[14px] transition-colors ${
+                    active
+                      ? 'bg-white/10 font-medium text-white'
+                      : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Icon
+                    className={`h-4 w-4 flex-shrink-0 ${active ? 'text-primary-300' : ''}`}
+                    strokeWidth={1.75}
+                  />
+                  {label}
+                  {active && <span className="ml-auto h-1.5 w-1.5 bg-primary-300" />}
+                </Link>
+              )
+            })}
+          </div>
         </nav>
 
-        {/* Footer */}
-        <div className="px-3 py-4 border-t border-white/5 space-y-0.5">
-          <Link
-            href="/chat"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                       text-neutral-500 hover:text-white hover:bg-white/5 transition-all
-                       hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Chatbot
+        <div className="space-y-0.5 border-t border-white/10 px-3 py-4">
+          <Link href="/chat" className={FOOTER_LINK}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to chatbot
           </Link>
           <button
             onClick={() => {
               logout()
               router.push('/')
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm
-                       text-neutral-500 hover:text-white hover:bg-white/5 transition-all
-                       hover:scale-[1.02] active:scale-[0.98]"
+            className={FOOTER_LINK}
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="h-4 w-4" />
             Sign out
           </button>
 
-          {/* User chip */}
-          <div className="flex items-center gap-2.5 px-3 py-2 mt-2">
-            <div className="w-7 h-7 rounded-lg bg-neutral-700 flex items-center justify-center
-                            text-xs font-bold text-white flex-shrink-0">
+          <div className="mt-3 flex items-center gap-2.5 border-t border-white/10 px-3 pt-4">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-sm bg-white/10 font-mono text-[11px] font-medium text-white">
               {initials}
-            </div>
-            <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+            </span>
+            <p className="truncate font-mono text-[11px] tracking-tighter2 text-muted">
+              {user.email}
+            </p>
           </div>
         </div>
       </aside>
 
-      {/* ── Main ────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
-        {children}
-      </div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   )
 }

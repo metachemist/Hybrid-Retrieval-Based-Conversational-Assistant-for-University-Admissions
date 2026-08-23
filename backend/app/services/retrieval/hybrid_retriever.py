@@ -8,7 +8,7 @@ import itertools
 import re
 from typing import List, Tuple, Dict, Optional
 from sqlalchemy import text, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.models import Chunk, Document
 from .embeddings import get_embedding_model
@@ -166,6 +166,10 @@ class HybridRetriever:
         favors chunks matching more terms - plainto_tsquery ANDs every term,
         which made keyword search return nothing unless a chunk happened to
         contain every single word of a multi-word natural-language query.
+
+        Matches against the stored, generated chunks.content_tsv column rather
+        than calling to_tsvector() on Chunk.content inline. The inline form
+        cannot use an index, so every query re-tokenized the entire table.
         """
         search_terms = [re.sub(r'\W', '', t) for t in query.split() if len(t) > 2]
         search_terms = [t for t in search_terms if t]
@@ -175,12 +179,15 @@ class HybridRetriever:
         tsquery = func.to_tsquery('english', ' | '.join(search_terms))
         results = db.query(
             Chunk,
-            func.ts_rank(
-                func.to_tsvector('english', Chunk.content),
-                tsquery
-            ).label('score')
+            func.ts_rank(Chunk.content_tsv, tsquery).label('score')
+        ).options(
+            # The 1536-dim vector is ~90% of a chunk row's bytes (7.9KB vs
+            # 0.7KB) and nothing downstream of retrieval reads it - ranking
+            # happens server-side. Leaving it in the select list dominated
+            # retrieval time.
+            defer(Chunk.embedding)
         ).filter(
-            func.to_tsvector('english', Chunk.content).op('@@')(tsquery)
+            Chunk.content_tsv.op('@@')(tsquery)
         ).order_by(text('score DESC')).limit(top_k).all()
         return [(chunk, float(score)) for chunk, score in results]
 
@@ -194,7 +201,12 @@ class HybridRetriever:
         query_embedding = self.embedding_model.encode_query(query)
 
         distance = Chunk.embedding.cosine_distance(query_embedding)
-        results = db.query(Chunk, distance.label('distance')).filter(
+        results = db.query(Chunk, distance.label('distance')).options(
+            # Deferred for payload, not for correctness: the distance is
+            # computed by Postgres, so the vector itself never needs to cross
+            # the wire. See the note in _keyword_search.
+            defer(Chunk.embedding)
+        ).filter(
             Chunk.embedding.isnot(None)
         ).order_by(distance).limit(top_k).all()
 

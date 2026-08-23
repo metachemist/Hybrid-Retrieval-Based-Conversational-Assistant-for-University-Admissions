@@ -5,8 +5,8 @@
 The project currently has a single-role RAG chatbot. The goal is to split it into two distinct
 experiences:
 
-- **User side** — RAG chatbot (existing, now behind optional auth)
-- **Admin side** — Analytics dashboard populated by chat data, plus document management
+- **User side**: RAG chatbot (existing, now behind optional auth)
+- **Admin side**: Analytics dashboard populated by chat data, plus document management
 
 The dashboard mirrors the style in `image.png` (Higher Education Enrollment and Retention
 Dashboard): KPI cards on the left, bar/line charts on the right, date range filter at the top.
@@ -60,7 +60,7 @@ In production (PostgreSQL), use an Alembic migration instead.
 
 ---
 
-## Backend — New Files
+## Backend: New Files
 
 ### `backend/app/core/security.py`
 JWT utilities:
@@ -71,7 +71,7 @@ JWT utilities:
 - FastAPI dependency: `require_admin(user) -> User` (raises 403 if role != admin)
 
 ### `backend/app/services/analytics/__init__.py`
-Empty — makes `analytics` a Python package.
+Empty, makes `analytics` a Python package.
 
 ### `backend/app/services/analytics/topic_classifier.py`
 Keyword-based classifier. Classifies against `normalized_query` (not raw text) so Roman Urdu
@@ -115,7 +115,7 @@ GET /api/admin/users                 [{id, email, role, created_at}]
 
 ---
 
-## Backend — Modified Files
+## Backend: Modified Files
 
 ### `backend/app/core/config.py`
 Add:
@@ -150,10 +150,10 @@ Add `python-jose[cryptography]>=3.3.0` and `passlib[bcrypt]>=1.7.4`
 
 ---
 
-## Frontend — New Files
+## Frontend: New Files
 
 ### `frontend/src/lib/auth.tsx`
-- `AuthProvider` — JWT stored in localStorage, provides `user`, `token`, `login()`, `logout()`
+- `AuthProvider`: JWT stored in localStorage, provides `user`, `token`, `login()`, `logout()`
 - `useAuth()` hook
 - On mount: decode stored token to restore session
 
@@ -181,17 +181,17 @@ List documents | Upload PDF | Delete (with confirm) | Re-index button
 Reusable card: value + label.
 
 ### `frontend/src/components/admin/QueryVolumeChart.tsx`
-Recharts LineChart — daily query volume.
+Recharts LineChart for daily query volume.
 
 ### `frontend/src/components/admin/LanguageChart.tsx`
-Recharts BarChart — English / Roman Urdu / Mixed counts.
+Recharts BarChart for English / Roman Urdu / Mixed counts.
 
 ### `frontend/src/components/admin/TopicChart.tsx`
-Recharts horizontal BarChart — topic breakdown.
+Recharts horizontal BarChart for the topic breakdown.
 
 ---
 
-## Frontend — Modified Files
+## Frontend: Modified Files
 
 ### `frontend/src/lib/api.ts`
 - `setToken(t)` / `clearToken()` for auth injection
@@ -216,30 +216,30 @@ Add `recharts`
 
 ```
 Step 1  Install packages: pip install python-jose passlib[bcrypt] + npm install recharts
-Step 2  config.py — add SECRET_KEY, ADMIN_REGISTRATION_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
-Step 3  .env.example — add the 3 new vars
-Step 4  security.py — JWT utils + FastAPI dependencies
-Step 5  models/__init__.py — User model (before QueryLog) + topic/user_id on QueryLog
+Step 2  config.py: add SECRET_KEY, ADMIN_REGISTRATION_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
+Step 3  .env.example: add the 3 new vars
+Step 4  security.py: JWT utils + FastAPI dependencies
+Step 5  models/__init__.py: User model (before QueryLog) + topic/user_id on QueryLog
         → delete admission_demo.db
 Step 6  services/analytics/__init__.py (empty)
 Step 7  services/analytics/topic_classifier.py
-Step 8  api/auth.py — register, login, me
-Step 9  api/admin.py — all analytics + users endpoints
-Step 10 api/documents.py — admin protection on write endpoints
-Step 11 api/chat.py — topic classification + optional user_id
-Step 12 app/__init__.py — register routers + wire rate limiter
-Step 13 frontend/src/lib/api.ts — token injection + all new methods
-Step 14 frontend/src/lib/auth.tsx — AuthProvider + useAuth
-Step 15 frontend/src/app/layout.tsx — AuthProvider wrapper
+Step 8  api/auth.py: register, login, me
+Step 9  api/admin.py: all analytics + users endpoints
+Step 10 api/documents.py: admin protection on write endpoints
+Step 11 api/chat.py: topic classification + optional user_id
+Step 12 app/__init__.py: register routers + wire rate limiter
+Step 13 frontend/src/lib/api.ts: token injection + all new methods
+Step 14 frontend/src/lib/auth.tsx: AuthProvider + useAuth
+Step 15 frontend/src/app/layout.tsx: AuthProvider wrapper
 Step 16 frontend/src/app/login/page.tsx
 Step 17 frontend/src/app/register/page.tsx
-Step 18 frontend/src/app/page.tsx — api.chat() + auth-aware header
-Step 19 frontend/src/app/admin/layout.tsx — protected sidebar layout
+Step 18 frontend/src/app/page.tsx: api.chat() + auth-aware header
+Step 19 frontend/src/app/admin/layout.tsx: protected sidebar layout
 Step 20 frontend/src/components/admin/KpiCard.tsx
 Step 21 frontend/src/components/admin/QueryVolumeChart.tsx
 Step 22 frontend/src/components/admin/LanguageChart.tsx
 Step 23 frontend/src/components/admin/TopicChart.tsx
-Step 24 frontend/src/app/admin/page.tsx — assembles all
+Step 24 frontend/src/app/admin/page.tsx: assembles all
 Step 25 frontend/src/app/admin/documents/page.tsx
 ```
 
@@ -248,7 +248,7 @@ Step 25 frontend/src/app/admin/documents/page.tsx
 ## Verification
 
 1. `POST /api/auth/register` with `admin_key` → `POST /api/auth/login` → `GET /api/auth/me` returns `role: admin`
-2. `GET /api/admin/analytics/overview` — no token → 401, user token → 403, admin token → 200
+2. `GET /api/admin/analytics/overview`: no token gives 401, user token → 403, admin token → 200
 3. Query "documents chahiye" → `query_logs.topic` = "documents"
 4. `/login` → redirect to `/admin` → dashboard renders with KPI cards and charts
 5. `/admin/documents` → upload PDF → appears in list → delete → removed

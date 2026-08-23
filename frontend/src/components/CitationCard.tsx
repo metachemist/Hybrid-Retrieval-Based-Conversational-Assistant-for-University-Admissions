@@ -1,68 +1,75 @@
 'use client'
 
 import { Citation } from '@/app/chat/page'
-import { FileText, ChevronDown, ChevronUp, Hash } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 
 interface CitationCardProps {
   citation: Citation
 }
 
+/**
+ * A retrieved source rendered as one of the reference's labeled technical
+ * panels: mono ref tag, squared frame, expandable excerpt.
+ */
 export default function CitationCard({ citation }: CitationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
+  const pages =
+    citation.page_start > 0
+      ? `p.${citation.page_start}${
+          citation.page_end && citation.page_end !== citation.page_start
+            ? `–${citation.page_end}`
+            : ''
+        }`
+      : null
+  const section =
+    citation.section_header && citation.section_header !== 'N/A' ? citation.section_header : null
+
   return (
     <div
-      className={`rounded-xl border text-xs cursor-pointer transition-all duration-150
-        ${isExpanded
-          ? 'bg-primary-50 border-primary-200'
-          : 'bg-neutral-50 border-neutral-200 hover:border-neutral-300 hover:bg-white'
-        }`}
-      onClick={() => setIsExpanded(!isExpanded)}
+      className={`rounded-sm border transition-colors ${
+        isExpanded
+          ? 'border-primary-400 bg-primary-50'
+          : 'border-neutral-200 bg-white hover:border-neutral-300'
+      }`}
     >
-      {/* Header row */}
-      <div className="flex items-start gap-2.5 px-3.5 py-3">
-        <div className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center mt-0.5
-          ${isExpanded ? 'bg-primary-200' : 'bg-neutral-200'}`}>
-          <FileText className={`w-3 h-3 ${isExpanded ? 'text-primary-700' : 'text-neutral-500'}`} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p className={`font-semibold leading-tight truncate ${isExpanded ? 'text-primary-800' : 'text-neutral-700'}`}>
-              {citation.document_title}
-            </p>
-            {isExpanded
-              ? <ChevronUp className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0 mt-0.5" />
-              : <ChevronDown className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0 mt-0.5" />}
-          </div>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
+        className="flex w-full items-start gap-3 px-3 py-2.5 text-left"
+      >
+        {/* Ref tag */}
+        <span
+          className={`mt-px flex-shrink-0 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-tighter2 ${
+            isExpanded ? 'bg-primary-300 text-neutral-900' : 'bg-neutral-900 text-neutral-200'
+          }`}
+        >
+          REF {String(citation.index).padStart(2, '0')}
+        </span>
 
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-white/70 rounded-md
-                             border border-neutral-200/80 text-neutral-500">
-              <Hash className="w-2.5 h-2.5" />
-              Ref {citation.index}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-medium text-neutral-800">
+            {citation.document_title}
+          </span>
+          {(section || pages) && (
+            <span className="mt-1 flex flex-wrap items-center gap-x-2.5 font-mono text-[11px] tracking-tighter2 text-muted">
+              {section && <span className="truncate">§ {section}</span>}
+              {pages && <span>{pages}</span>}
             </span>
-            {citation.section_header && citation.section_header !== 'N/A' && (
-              <span className="text-neutral-400 truncate max-w-[160px]">
-                § {citation.section_header}
-              </span>
-            )}
-            {citation.page_start > 0 && (
-              <span className="text-neutral-400">
-                p.{citation.page_start}
-                {citation.page_end && citation.page_end !== citation.page_start
-                  ? `–${citation.page_end}`
-                  : ''}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
+          )}
+        </span>
 
-      {/* Expanded preview */}
+        <ChevronDown
+          className={`mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-neutral-400 transition-transform duration-200 ${
+            isExpanded ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
       {isExpanded && (
-        <div className="px-3.5 pb-3.5 pt-0.5 border-t border-primary-200/60">
-          <p className="text-neutral-600 italic leading-relaxed line-clamp-4">
+        <div className="border-t border-primary-200 px-3 py-2.5">
+          <p className="line-clamp-4 text-[13px] italic leading-[1.7] text-neutral-600">
             &ldquo;{citation.content_preview}&rdquo;
           </p>
         </div>

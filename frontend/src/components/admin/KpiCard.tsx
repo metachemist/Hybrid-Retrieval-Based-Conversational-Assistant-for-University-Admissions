@@ -4,20 +4,20 @@ interface KpiCardProps {
   sub?: string
 }
 
+/**
+ * Stat tile: label · value · sub.
+ *
+ * The value uses the body sans with the font's default proportional figures —
+ * a display face reads as off-brand decoration on a figure, and `tabular-nums`
+ * gives every digit the width of a `0`, which makes a number like 121 look
+ * loose at this size. Tabular figures are for columns that align vertically.
+ */
 export default function KpiCard({ label, value, sub }: KpiCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-neutral-200 border-l-4 border-l-primary-400
-                    p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200
-                    animate-in-up">
-      <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2">
-        {label}
-      </p>
-      <p className="font-display text-3xl font-bold text-neutral-900 leading-none tabular-nums">
-        {value}
-      </p>
-      {sub && (
-        <p className="mt-2 text-xs text-neutral-400 font-medium">{sub}</p>
-      )}
+    <div className="rounded-sm border border-neutral-200 border-l-2 border-l-primary-600 bg-white p-5">
+      <p className="label-mono">{label}</p>
+      <p className="mt-3 text-[32px] font-semibold leading-none text-neutral-900">{value}</p>
+      {sub && <p className="mt-2.5 text-[13px] text-neutral-500">{sub}</p>}
     </div>
   )
 }

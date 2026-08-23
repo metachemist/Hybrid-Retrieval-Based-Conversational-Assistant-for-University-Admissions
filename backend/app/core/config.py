@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     # Application
-    APP_NAME: str = "Admission Policy Chatbot"
+    APP_NAME: str = "Rehnuma"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     
