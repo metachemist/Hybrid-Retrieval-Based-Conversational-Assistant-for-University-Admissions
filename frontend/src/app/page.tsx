@@ -74,13 +74,15 @@ function CornerFrame({
   children,
   className = '',
   handle = 'white',
+  style,
 }: {
   children: React.ReactNode
   className?: string
   handle?: 'white' | 'accent'
+  style?: React.CSSProperties
 }) {
   return (
-    <div className={`relative border border-white/20 ${className}`}>
+    <div className={`relative border border-white/20 ${className}`} style={style}>
       {[
         'top-0 left-0 -translate-x-1/2 -translate-y-1/2',
         'top-0 right-0 translate-x-1/2 -translate-y-1/2',
@@ -112,13 +114,69 @@ function PanelTag({ children, tone = 'accent' }: { children: string; tone?: 'acc
   )
 }
 
+/**
+ * Where each hero panel sits and how large it is.
+ *
+ * Every panel is absolutely positioned inside the stage, so these are the only
+ * values that place it: move one and nothing else shifts. Tweak them freely.
+ *
+ *   top     px from the top of the stage. Positions the panel's file tag; the
+ *           bordered frame starts roughly 27px below that (tag + 6px gap).
+ *   height  px, the frame only -- it does not include the tag above it.
+ *   left    % of stage width, so the collage stays fluid between lg and xl.
+ *   width   % of stage width.
+ *
+ * STAGE_HEIGHT has to clear the lowest panel (its top + ~27 + its height), or
+ * the hero column crops it.
+ */
+const STAGE_HEIGHT = 392
+
+const HERO_PANELS = {
+  retrieve: { top: 0, left: '0%', width: '100%', height: 180 },
+  index: { top: 211, left: '0%', width: '61%', height: 150 },
+  rank: { top: 211, left: '65%', width: '35%', height: 120 },
+}
+
+type PanelPlacement = { top: number; left: string; width: string; height: number }
+
+/** One free-floating panel: file tag, bordered frame, and whatever fills it. */
+function FloatingPanel({
+  place,
+  tag,
+  tone = 'accent',
+  handle = 'white',
+  frameClassName = '',
+  children,
+}: {
+  place: PanelPlacement
+  tag: string
+  tone?: 'accent' | 'dark'
+  handle?: 'white' | 'accent'
+  /** Styling for the frame itself: background, padding, overflow, layout. */
+  frameClassName?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="absolute" style={{ top: place.top, left: place.left, width: place.width }}>
+      <PanelTag tone={tone}>{tag}</PanelTag>
+      <CornerFrame
+        handle={handle}
+        className={`mt-1.5 ${frameClassName}`}
+        style={{ height: place.height }}
+      >
+        {children}
+      </CornerFrame>
+    </div>
+  )
+}
+
 export default function LandingPage() {
   return (
     <main className="bg-white">
       <CursorSquare />
 
       {/* ══ Dark block: nav + hero ═══════════════════════════ */}
-      <div className="relative overflow-hidden bg-ink text-white">
+      <div className="grid-lines-dark relative overflow-hidden bg-ink text-white">
         <GenerativeGrid
           className="absolute inset-0 h-full w-full pointer-events-none"
           {...AMBIENT_FIELD}
@@ -171,7 +229,7 @@ export default function LandingPage() {
           <div className="grid items-start gap-14 lg:grid-cols-[1.22fr_0.78fr] lg:gap-12">
             {/* ── Headline column ── */}
             <div>
-              <Reveal delay={60}>
+              <Reveal delay={30}>
                 <h1 className="display-xl text-[clamp(2.2rem,4.6vw,4rem)]">
                   Stop guessing.
                   <br />
@@ -198,44 +256,49 @@ export default function LandingPage() {
               </Reveal>
             </div>
 
-            {/* ── Generative panel collage ── */}
+            {/* ── Generative panel collage ──
+                Three independent panels on one stage. Each is placed solely by
+                its entry in HERO_PANELS above, so any of them can be moved or
+                resized without disturbing the other two. ── */}
             <Reveal delay={180} className="hidden lg:block">
-              <div className="relative">
-                <div>
-                  <PanelTag>RETRIEVE.PY</PanelTag>
-                  <CornerFrame className="mt-1.5 h-[190px] overflow-hidden rounded-sm bg-[#0b0b0b] p-5">
-                    <ScrambleCodeBlock className="text-[13px] leading-[1.7]" />
-                  </CornerFrame>
-                </div>
+              <div className="relative" style={{ height: STAGE_HEIGHT }}>
+                <FloatingPanel
+                  place={HERO_PANELS.retrieve}
+                  tag="RETRIEVE.PY"
+                  frameClassName="overflow-hidden rounded-sm bg-[#0b0b0b] p-7"
+                >
+                  <ScrambleCodeBlock className="text-[13px] leading-[1.7]" />
+                </FloatingPanel>
 
-                <div className="mt-9 grid grid-cols-[1.6fr_1fr] items-start gap-4">
-                  <div>
-                    <PanelTag tone="dark">INDEX.VEC</PanelTag>
-                    <CornerFrame className="relative mt-1.5 h-[128px] overflow-hidden rounded-sm bg-black">
-                      <GenerativeGrid
-                        className="absolute inset-0 h-full w-full"
-                        cell={11}
-                        fontSize={10}
-                        maxOpacity={0.85}
-                        minOpacity={0.12}
-                        intervalMs={70}
-                      />
-                    </CornerFrame>
-                  </div>
-                  <div>
-                    <PanelTag tone="dark">RANK.OUT</PanelTag>
-                    <CornerFrame
-                      handle="accent"
-                      className="mt-1.5 flex h-[128px] items-end rounded-sm bg-primary-300 p-3"
-                    >
-                      <span className="font-mono text-[11px] leading-tight tracking-tighter2 text-neutral-900">
-                        top_k = 5
-                        <br />
-                        rrf_k = 60
-                      </span>
-                    </CornerFrame>
-                  </div>
-                </div>
+                <FloatingPanel
+                  place={HERO_PANELS.index}
+                  tag="INDEX.VEC"
+                  tone="dark"
+                  frameClassName="overflow-hidden rounded-sm bg-black"
+                >
+                  <GenerativeGrid
+                    className="h-full w-full"
+                    cell={2}
+                    fontSize={8}
+                    maxOpacity={0.75}
+                    minOpacity={0.25}
+                    intervalMs={50}
+                  />
+                </FloatingPanel>
+
+                <FloatingPanel
+                  place={HERO_PANELS.rank}
+                  tag="RANK.OUT"
+                  tone="dark"
+                  handle="accent"
+                  frameClassName="flex items-end rounded-sm bg-primary-300 p-3"
+                >
+                  <span className="font-mono text-[11px] leading-tight tracking-tighter2 text-neutral-900">
+                    top_k = 5
+                    <br />
+                    rrf_k = 60
+                  </span>
+                </FloatingPanel>
               </div>
             </Reveal>
           </div>

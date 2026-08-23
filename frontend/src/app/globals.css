@@ -81,6 +81,23 @@ body {
   background-size: 56px 56px;
 }
 
+/* ─── Dotted rule grid ───────────────────────────────────
+   The reference's drafting-guide background: fine dotted rules ruling the
+   surface into large cells, rather than the sparse standalone dots above.
+
+   Each "line" is a run of 1px dots, drawn with a radial-gradient whose tile is
+   long on one axis and short on the other: a 148x7 tile places one dot per
+   tile, so dots repeat every 7px vertically and every 148px horizontally,
+   which reads as a vertical dotted rule. The second layer transposes the tile
+   for the horizontal rules. Both dots sit at their tile's centre, so the two
+   families intersect on one shared 148px grid. */
+.grid-lines-dark {
+  background-image:
+    radial-gradient(circle, rgba(250, 250, 250, 0.17) 0.5px, transparent 0.5px),
+    radial-gradient(circle, rgba(250, 250, 250, 0.17) 0.5px, transparent 0.5px);
+  background-size: 148px 7px, 7px 148px;
+}
+
 /* ─── Scroll reveal ──────────────────────────────────────── */
 .reveal {
   opacity: 0;
