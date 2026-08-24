@@ -146,7 +146,17 @@ class OpenAIProvider(LLMProviderBase):
     def _get_client(self):
         if self._client is None:
             import openai
-            self._client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY, timeout=30.0)
+            # timeout was 30s while broad/aggregation prompts measured a 32s
+            # median - so those requests tripped their own deadline. Worse, the
+            # SDK retries timeouts twice by default, turning one slow request
+            # into three sequential ones before the caller ever sees an error.
+            # Budget generously and retry once: a genuine outage still fails
+            # over to the next provider quickly.
+            self._client = openai.AsyncOpenAI(
+                api_key=settings.OPENAI_API_KEY,
+                timeout=60.0,
+                max_retries=1,
+            )
         return self._client
     
     async def generate(
@@ -237,17 +247,35 @@ class LLMProvider:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None
     ) -> str:
+        """Generate a response with automatic fallback."""
+        text, _ = await self.generate_with_provider(
+            prompt, system_prompt, temperature, max_tokens
+        )
+        return text
+
+    async def generate_with_provider(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> tuple[str, str]:
         """
-        Generate a response with automatic fallback.
-        
+        Generate a response with automatic fallback, reporting which provider
+        served it.
+
+        Returned rather than stashed on the instance: this is a singleton shared
+        by every concurrent request, so an attribute recording "the last
+        provider" would be read by the wrong request under load.
+
         Args:
             prompt: User prompt
             system_prompt: System instruction
             temperature: Model temperature
             max_tokens: Maximum tokens to generate
-            
+
         Returns:
-            Generated response text
+            (generated text, name of the provider that produced it)
         """
         temperature = temperature or settings.LLM_TEMPERATURE
         max_tokens = max_tokens or settings.LLM_MAX_TOKENS
@@ -271,7 +299,7 @@ class LLMProvider:
                 )
                 self._record_success(provider.name)
                 logger.info(f"Successfully generated response using {provider.name}")
-                return response
+                return response, provider.name
             
             except Exception as e:
                 logger.error(f"Error with {provider.name}: {e}")
@@ -292,35 +320,84 @@ class LLMProvider:
     ) -> AsyncGenerator[str, None]:
         """
         Generate a streaming response with automatic fallback.
-        
+
         Yields:
             Generated text chunks
+
+        Raises:
+            The last provider error, if every provider failed.
+        """
+        async for chunk, _ in self.stream_with_provider(
+            prompt, system_prompt, temperature, max_tokens
+        ):
+            yield chunk
+
+    async def stream_with_provider(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> AsyncGenerator[tuple[str, str], None]:
+        """
+        Stream a response with fallback, tagging each chunk with its provider.
+
+        Fallback is only attempted before the first chunk is yielded. Once any
+        text has reached the client it cannot be retracted, so a mid-stream
+        failure is raised rather than silently restarted against another
+        provider - which would splice two different answers together.
+
+        The provider name rides on every chunk instead of being stashed on the
+        instance: this is a singleton shared by all concurrent requests (see
+        generate_with_provider).
+
+        Yields:
+            (text chunk, name of the provider producing it)
+
+        Raises:
+            The last provider error, if every provider failed before emitting.
         """
         temperature = temperature or settings.LLM_TEMPERATURE
         max_tokens = max_tokens or settings.LLM_MAX_TOKENS
-        
-        provider = self._get_available_provider()
-        if not provider:
-            raise RuntimeError("No LLM providers available")
-        
-        try:
-            async for chunk in provider.generate_stream(
-                prompt,
-                system_prompt,
-                temperature,
-                max_tokens
-            ):
-                yield chunk
-            self._record_success(provider.name)
-        except Exception as e:
-            logger.error(f"Streaming error with {provider.name}: {e}")
-            self._record_failure(provider.name)
-            # For streaming, we can't easily fallback mid-stream
-            # Return error message as final chunk
-            yield f"\n\n[Error: {str(e)}]"
+
+        last_error = None
+
+        for provider in self.providers:
+            if not provider.is_available:
+                continue
+
+            if self._failure_counts[provider.name] >= self._circuit_breaker_threshold:
+                logger.warning(f"Skipping {provider.name} due to repeated failures")
+                continue
+
+            emitted = False
+            try:
+                async for chunk in provider.generate_stream(
+                    prompt,
+                    system_prompt,
+                    temperature,
+                    max_tokens
+                ):
+                    emitted = True
+                    yield chunk, provider.name
+                self._record_success(provider.name)
+                return
+
+            except Exception as e:
+                logger.error(f"Streaming error with {provider.name}: {e}")
+                self._record_failure(provider.name)
+                last_error = e
+                if emitted:
+                    # Partial answer already sent; the caller must surface the
+                    # break rather than have another provider continue it.
+                    raise
+
+        if last_error:
+            raise last_error
+        raise RuntimeError("No LLM providers available")
     
     def get_current_provider(self) -> str:
-        """Get the name of the primary available provider."""
+        """Name of the provider that would be tried first, before any call."""
         provider = self._get_available_provider()
         return provider.name if provider else "none"
 

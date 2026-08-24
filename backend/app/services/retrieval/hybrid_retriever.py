@@ -25,6 +25,53 @@ AGGREGATION_PATTERNS = re.compile(
 )
 
 
+# How many chunks an aggregation query is allowed to put in front of the LLM.
+#
+# This is a latency budget, not a retrieval-quality knob. Measured on gpt-4o,
+# generation time scales close to linearly with prompt size, and the broad path
+# was sending 40 chunks / ~17.7k tokens to produce a ~58-token answer:
+#
+#     40 chunks (~17.7k tok)  ->  32.2 s median
+#     25 chunks (~11.0k tok)  ->  18.9 s median
+#     15 chunks (~ 6.1k tok)  ->  11.6 s median
+#
+# 20 was chosen after measuring entity recall - the fraction of the answer's
+# distinct entities (department names, society names) named anywhere in the
+# retrieved chunks - against the budget, on a gold set built from the corpus:
+#
+#     budget        "list all departments"   "departments in faculty of science"
+#        10                    0/24                        4/24
+#        20                    2/24                        7/24
+#        40                    2/24                        9/24
+#        60                    5/24                       11/24
+#
+# Recall never plateaus, but it never gets good either: even 60 chunks - three
+# times the latency of 20 - reaches under half the departments. Raising the
+# budget is not what makes enumeration questions work, so it is not worth
+# paying 32 s for. Answering those properly needs retrieval that sweeps
+# section headers rather than ranking chunks by similarity to the query;
+# until that exists, 20 buys most of the available recall at a third of the cost.
+BROAD_CHUNK_BUDGET = 20
+
+# Multiplier on the per-arm fetch before de-duplication. The corpus carries the
+# morning and evening prospectuses separately and they repeat whole department
+# write-ups verbatim, so a plain top-20 routinely spent several of its slots on
+# the same text. Over-fetching and then dropping the repeats fills those slots
+# with new material instead, at no cost to the prompt - the budget above is
+# unchanged, only what gets into it.
+BROAD_OVERFETCH = 3
+
+
+def _dedupe_key(chunk: Chunk) -> str:
+    """Near-duplicate key for a chunk: normalized opening of its content.
+
+    The prospectuses are published in morning and evening editions that repeat
+    department write-ups word for word, so the same text reaches retrieval
+    under several ids.
+    """
+    return re.sub(r'\W+', ' ', (chunk.content or '')).strip().lower()[:200]
+
+
 def is_aggregation_query(query: str) -> bool:
     """Detect count/enumeration questions that need broad, not top-k, retrieval."""
     return bool(AGGREGATION_PATTERNS.search(query))
@@ -88,7 +135,7 @@ class HybridRetriever:
         top_k = top_k or self.top_k
 
         if broad:
-            return self._broad_search(query, db, top_k=max(top_k, 40))
+            return self._broad_search(query, db, top_k=BROAD_CHUNK_BUDGET)
 
         if use_hybrid:
             # Get both keyword and semantic results
@@ -130,27 +177,44 @@ class HybridRetriever:
         the specific department only once; semantic search isn't fooled by
         that since it matches on meaning, not word counts.
         """
-        keyword_results = self._keyword_search(query, db, top_k=top_k)
-        semantic_results = self._semantic_search(query, db, top_k=top_k)
+        pool = top_k * BROAD_OVERFETCH
+        keyword_results = self._keyword_search(query, db, top_k=pool)
+        semantic_results = self._semantic_search(query, db, top_k=pool)
 
         # Interleave rather than concatenate: whatever cap the caller applies
         # downstream (e.g. max_chunks to the LLM) must not exhaust one signal
         # before the other gets a chance - keyword and semantic each surface
         # results the other misses (see docstring above).
-        seen = set()
+        seen_ids = set()
+        seen_text = set()
         merged = []
         interleaved = itertools.chain.from_iterable(
             itertools.zip_longest(keyword_results, semantic_results, fillvalue=(None, 0.0))
         )
         for chunk, _ in interleaved:
-            if chunk is None or chunk.id in seen:
+            if chunk is None or chunk.id in seen_ids:
                 continue
-            seen.add(chunk.id)
-            merged.append(chunk)
+            seen_ids.add(chunk.id)
 
+            # Skip text already in the result. Keyed on a normalized prefix of
+            # the content, not on the section header: 652 of 781 chunks share a
+            # header with a chunk carrying different text (headers repeat across
+            # every continuation of a section), so a header key would silently
+            # drop the body of each section and keep only its opening.
+            key = _dedupe_key(chunk)
+            if key in seen_text:
+                continue
+            seen_text.add(key)
+
+            merged.append(chunk)
+            if len(merged) >= top_k:
+                break
+
+        # Stop at top_k, however large the pool above was: the caller can only
+        # put its budget in front of the LLM, and the extra rows cost wire time.
         return [
             (chunk, 1.0, {"source": "broad", "rank": i + 1})
-            for i, chunk in enumerate(merged[:top_k * 2])
+            for i, chunk in enumerate(merged)
         ]
 
     def _keyword_search(
