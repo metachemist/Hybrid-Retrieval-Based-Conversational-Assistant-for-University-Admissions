@@ -4,7 +4,7 @@ Admin API Endpoints — analytics dashboard data and user management.
 All routes require admin role.
 """
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, case
+from sqlalchemy import func, case, distinct
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import List
@@ -14,6 +14,9 @@ from ..core.security import require_admin
 from ..models import QueryLog, User, Document, Chunk
 
 router = APIRouter()
+
+# llm_provider values that mean "no real answer was produced".
+_FAILURE_PROVIDERS = ("none", "fallback", "error")
 
 
 def _cutoff(days: int) -> datetime:
@@ -28,24 +31,26 @@ def analytics_overview(
 ):
     """KPI cards: total queries, unique users, avg latency, cache hit rate, success rate."""
     since = _cutoff(days)
-    logs = db.query(QueryLog).filter(QueryLog.created_at >= since).all()
 
-    total = len(logs)
-    unique_users = len({l.user_id for l in logs if l.user_id})
-    avg_latency = round(sum(l.latency_ms for l in logs if l.latency_ms) / total, 1) if total else 0
-    cache_hits = sum(1 for l in logs if l.cache_hit)
-    cache_hit_rate = round(cache_hits / total * 100, 1) if total else 0
-    # success = got an LLM response (not "none" fallback)
-    successes = sum(1 for l in logs if l.llm_provider and l.llm_provider not in ("none", "fallback"))
-    success_rate = round(successes / total * 100, 1) if total else 0
+    # One aggregate round trip instead of pulling every row into Python.
+    row = db.query(
+        func.count(QueryLog.id).label("total"),
+        func.count(distinct(QueryLog.user_id)).label("unique_users"),
+        func.avg(QueryLog.latency_ms).label("avg_latency"),
+        func.sum(case((QueryLog.cache_hit.is_(True), 1), else_=0)).label("cache_hits"),
+        func.sum(
+            case((QueryLog.llm_provider.notin_(_FAILURE_PROVIDERS), 1), else_=0)
+        ).label("successes"),
+    ).filter(QueryLog.created_at >= since).one()
 
+    total = row.total or 0
     return {
         "days": days,
         "total_queries": total,
-        "unique_users": unique_users,
-        "avg_latency_ms": avg_latency,
-        "cache_hit_rate_pct": cache_hit_rate,
-        "success_rate_pct": success_rate,
+        "unique_users": row.unique_users or 0,
+        "avg_latency_ms": round(float(row.avg_latency), 1) if row.avg_latency is not None else 0,
+        "cache_hit_rate_pct": round((row.cache_hits or 0) / total * 100, 1) if total else 0,
+        "success_rate_pct": round((row.successes or 0) / total * 100, 1) if total else 0,
     }
 
 
@@ -126,22 +131,27 @@ def analytics_performance(
 ):
     """Latency stats, cache hit rate, error rate."""
     since = _cutoff(days)
-    logs = db.query(QueryLog).filter(QueryLog.created_at >= since).all()
 
-    total = len(logs)
-    latencies = sorted([l.latency_ms for l in logs if l.latency_ms])
-    avg_latency = round(sum(latencies) / len(latencies), 1) if latencies else 0
-    p95_latency = latencies[int(len(latencies) * 0.95)] if latencies else 0
-    cache_hits = sum(1 for l in logs if l.cache_hit)
-    errors = sum(1 for l in logs if l.llm_provider in ("none", "fallback"))
+    row = db.query(
+        func.count(QueryLog.id).label("total"),
+        func.avg(QueryLog.latency_ms).label("avg_latency"),
+        func.percentile_cont(0.95)
+        .within_group(QueryLog.latency_ms.asc())
+        .label("p95_latency"),
+        func.sum(case((QueryLog.cache_hit.is_(True), 1), else_=0)).label("cache_hits"),
+        func.sum(
+            case((QueryLog.llm_provider.in_(_FAILURE_PROVIDERS), 1), else_=0)
+        ).label("errors"),
+    ).filter(QueryLog.created_at >= since).one()
 
+    total = row.total or 0
     return {
         "days": days,
         "total_queries": total,
-        "avg_latency_ms": avg_latency,
-        "p95_latency_ms": p95_latency,
-        "cache_hit_rate_pct": round(cache_hits / total * 100, 1) if total else 0,
-        "error_rate_pct": round(errors / total * 100, 1) if total else 0,
+        "avg_latency_ms": round(float(row.avg_latency), 1) if row.avg_latency is not None else 0,
+        "p95_latency_ms": round(float(row.p95_latency)) if row.p95_latency is not None else 0,
+        "cache_hit_rate_pct": round((row.cache_hits or 0) / total * 100, 1) if total else 0,
+        "error_rate_pct": round((row.errors or 0) / total * 100, 1) if total else 0,
     }
 
 

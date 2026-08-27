@@ -128,6 +128,11 @@ Remember: Your responses must be grounded in the provided documents."""
         # Build language-specific instructions
         if language == "ur":
             lang_instruction = "Respond in Roman Urdu (Urdu written in Latin script)."
+        elif language == "mixed":
+            lang_instruction = (
+                "The user mixed English and Roman Urdu. Reply in the same "
+                "code-mixed style they used."
+            )
         else:
             lang_instruction = "Respond in English."
         
@@ -148,23 +153,26 @@ Remember to cite your sources using [1], [2], etc.
         query: str,
         chunks: List[Chunk],
         documents: Dict[str, str],
-        max_chunks: int = 5
+        max_chunks: int = 5,
+        language: str = "en"
     ) -> tuple[str, List[Citation]]:
         """
         Build a condensed prompt with top chunks.
-        
+
         Args:
             query: User query
             chunks: Retrieved chunks (already ranked)
             documents: Map of chunk IDs to document titles
             max_chunks: Maximum number of chunks to include
-            
+            language: Detected query language ('en', 'ur', 'mixed') — controls
+                which language the model is told to answer in
+
         Returns:
             Tuple of (prompt, citations)
         """
         # Take top chunks
         selected_chunks = chunks[:max_chunks]
-        return self.build(query, selected_chunks, documents)
+        return self.build(query, selected_chunks, documents, language=language)
     
     def format_citations(self, citations: List[Citation]) -> str:
         """Format citations for display."""
@@ -221,20 +229,24 @@ def create_rag_prompt(
     query: str,
     chunks: List[Chunk],
     documents: Dict[str, str],
-    max_chunks: int = 5
+    max_chunks: int = 5,
+    language: str = "en"
 ) -> tuple[str, str, List[Citation]]:
     """
     Convenience function to create a complete RAG prompt.
-    
+
     Args:
         query: User query
         chunks: Retrieved chunks
         documents: Map of chunk IDs to document titles
         max_chunks: Maximum chunks to include
-        
+        language: Detected query language ('en', 'ur', 'mixed')
+
     Returns:
         Tuple of (system_prompt, user_prompt, citations)
     """
     builder = RAGPromptBuilder()
-    user_prompt, citations = builder.build_condensed(query, chunks, documents, max_chunks)
+    user_prompt, citations = builder.build_condensed(
+        query, chunks, documents, max_chunks, language=language
+    )
     return RAGPromptBuilder.SYSTEM_PROMPT, user_prompt, citations

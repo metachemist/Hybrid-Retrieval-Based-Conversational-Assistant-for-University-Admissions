@@ -211,6 +211,79 @@ class ApiClient {
     })
   }
 
+  /**
+   * Streaming chat over Server-Sent Events. Calls the handlers as events
+   * arrive; resolves when the stream ends. Each SSE `data:` line is a JSON
+   * object with a `type` of "meta" | "token" | "done" | "error".
+   */
+  async chatStream(
+    request: ChatRequest,
+    handlers: {
+      onMeta?: (m: { language: string; citations: Citation[] }) => void
+      onToken?: (text: string) => void
+      onDone?: (d: { latency_ms: number; llm_provider: string; cache_hit?: boolean }) => void
+      onError?: (message: string) => void
+    },
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/api/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+      body: JSON.stringify(request),
+      signal,
+    })
+
+    if (!response.ok || !response.body) {
+      let message = response.statusText || `Request failed (${response.status})`
+      try {
+        const body = await response.json()
+        if (body?.detail) {
+          message = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)
+        }
+      } catch {
+        // not JSON — keep fallback
+      }
+      throw new ApiError(response.status, message)
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    const dispatch = (raw: string) => {
+      const line = raw.trim()
+      if (!line.startsWith('data:')) return
+      let evt: any
+      try {
+        evt = JSON.parse(line.slice(5).trim())
+      } catch {
+        return
+      }
+      if (evt.type === 'meta') handlers.onMeta?.({ language: evt.language, citations: evt.citations ?? [] })
+      else if (evt.type === 'token') handlers.onToken?.(evt.text ?? '')
+      else if (evt.type === 'done')
+        handlers.onDone?.({
+          latency_ms: evt.latency_ms,
+          llm_provider: evt.llm_provider,
+          cache_hit: evt.cache_hit,
+        })
+      else if (evt.type === 'error') handlers.onError?.(evt.message ?? 'The response could not be completed.')
+    }
+
+    // SSE frames are separated by a blank line.
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let sep: number
+      while ((sep = buffer.indexOf('\n\n')) !== -1) {
+        dispatch(buffer.slice(0, sep))
+        buffer = buffer.slice(sep + 2)
+      }
+    }
+    if (buffer.trim()) dispatch(buffer)
+  }
+
   async getSuggestions(limit: number = 5): Promise<{ suggestions: string[] }> {
     return this.request<{ suggestions: string[] }>(`/api/chat/suggestions?limit=${limit}`)
   }

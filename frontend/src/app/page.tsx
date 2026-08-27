@@ -247,7 +247,7 @@ export default function LandingPage() {
               <Reveal delay={220}>
                 <div className="mt-11 flex flex-col items-stretch gap-3 sm:flex-row sm:items-start">
                   <SlideButton href="/login" icon={<ArrowRight className="h-4 w-4" />}>
-                    Take me to the Rehnuma
+                    Take me to Rehnuma
                   </SlideButton>
                   <SlideButton href="/register" variant="outline">
                     Create an account

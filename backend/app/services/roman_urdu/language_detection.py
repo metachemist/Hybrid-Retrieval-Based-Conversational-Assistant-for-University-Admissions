@@ -30,25 +30,34 @@ class LanguageDetector:
         r'\b(admission|fee|document|form|date|last)\b.*\b(chahiye|hoga|hai|tha)\b',  # Common patterns
     ]
     
-    # Common Roman Urdu words for admission context
-    ADMISSION_ROMAN_URDU_WORDS = {
-        'kal', 'kull', 'kul',  # university
-        'admisn', 'admission', 'admn',
-        'fee', 'fii', 'fees',
-        'form', 'forme', 'from',
-        'date', 'dat', 'deed',
-        'last', 'laast',
-        'chahiye', 'chaiye', 'chiye',
-        'kaise', 'kese', 'kesay',
-        'kya', 'kyaa', 'ky',
-        'hai', 'he', 'hy',
-        'hoga', 'hoga', 'hoga',
-        'mein', 'men', 'main',
-        'liye', 'liye', 'lye',
-        'waali', 'wali', 'vaali',
-        'degree', 'digree',
-        'program', 'programme',
-        'course', 'cours',
+    # Tokens that are unambiguously Roman Urdu — function words, pronouns,
+    # postpositions and common verb forms. Words that collide with ordinary
+    # English ("the", "he", "or", "to", "par", "is", "us", "main", "so", "in")
+    # are deliberately left out so English and code-mixed queries are not
+    # dragged across the line by a single coincidental token.
+    ROMAN_URDU_MARKERS = {
+        # question / quantity words
+        'kya', 'kyaa', 'kaise', 'kaisay', 'kese', 'kaisa', 'kaisi',
+        'kahan', 'kahaan', 'kab', 'kyun', 'kyon', 'kaun', 'kaunsa', 'konsa',
+        'kitna', 'kitni', 'kitne',
+        # verbs / auxiliaries
+        'hai', 'hain', 'tha', 'thi', 'hoga', 'hogi', 'honge', 'hota', 'hoti',
+        'karna', 'karni', 'karne', 'karein', 'karo', 'karun', 'karoon',
+        'kiya', 'kiye', 'kar', 'krna', 'krein',
+        'mil', 'milega', 'milegi', 'milta', 'milti',
+        'sakta', 'sakti', 'sakte', 'chahiye', 'chaiye', 'chahye', 'chahiyay',
+        'raha', 'rahi', 'rahe', 'gaya', 'gayi',
+        # postpositions / pronouns / determiners
+        'ke', 'ki', 'ka', 'ko', 'se', 'mein', 'pe', 'liye', 'lye',
+        'wala', 'waala', 'wali', 'waali', 'wale', 'walay',
+        'mera', 'meri', 'mere', 'apna', 'apni', 'yeh', 'ye', 'woh', 'wo',
+        'iska', 'uska', 'hamara', 'humara', 'unka', 'aap',
+        # common adverbs / particles
+        'nahi', 'nahin', 'haan', 'kuch', 'sab', 'zyada', 'thoda',
+        'bhi', 'sirf', 'phir', 'magar', 'lekin', 'warna', 'abhi',
+        # frequent misspellings of admission-domain terms
+        'admisn', 'admn', 'addmission', 'admisison',
+        'fii', 'forme', 'laast', 'digree', 'kul', 'kull',
     }
     
     def __init__(self):
@@ -71,69 +80,60 @@ class LanguageDetector:
             - 'mixed': Code-mixed
         """
         text = text.strip().lower()
-        
+
         if not text:
             return ('en', 0.0)
-        
-        # Count Roman Urdu indicators
+
+        # Fraction of the query that reads as Roman Urdu, 0..1
         roman_urdu_score = self._calculate_roman_urdu_score(text)
-        
+
         # Try langdetect for baseline
         try:
             detected_lang = detect(text)
         except LangDetectException:
             detected_lang = 'en'
-        
-        # Decision logic
-        if roman_urdu_score >= 0.5:
+
+        # Decision logic. The threshold is a fraction of tokens, not an absolute
+        # count, so a two-word Roman Urdu question is not out-voted by the fixed
+        # ceiling the old additive score divided against.
+        if roman_urdu_score >= 0.30:
             if detected_lang == 'en':
-                # Mixed English and Roman Urdu
+                # langdetect still reads it as English -> genuinely code-mixed
                 return ('mixed', roman_urdu_score)
-            else:
-                return ('ur', roman_urdu_score)
-        else:
-            return ('en', 1.0 - roman_urdu_score)
-    
+            return ('ur', roman_urdu_score)
+        return ('en', 1.0 - roman_urdu_score)
+
     def _calculate_roman_urdu_score(self, text: str) -> float:
         """
-        Calculate a score indicating how likely the text is Roman Urdu.
-        
+        Fraction of the query that looks like Roman Urdu (0..1).
+
+        Counts tokens that are unambiguous Roman Urdu markers plus any
+        multi-word Roman Urdu phrase patterns, then divides by the token
+        count. A query made entirely of Roman Urdu function words scores ~1.0;
+        one English loanword ("apply", "documents") in an otherwise Roman Urdu
+        question no longer drags it under the line.
+
         Args:
-            text: Input text (should be lowercase)
-            
+            text: Input text (lowercase)
+
         Returns:
             Score between 0 and 1
         """
-        score = 0.0
-        max_score = 0.0
-        
-        # Check for Roman Urdu patterns
+        tokens = re.findall(r'[a-z]+', text)
+        if not tokens:
+            return 0.0
+
+        hits = sum(1 for t in tokens if t in self.ROMAN_URDU_MARKERS)
+
+        # Multi-word Roman Urdu phrasing ("... chahiye", "kya ... hai") each
+        # count once more, so short but clearly Urdu questions clear the bar.
         for pattern in self.roman_urdu_regex:
             if pattern.search(text):
-                score += 0.2
-            max_score += 0.2
-        
-        # Check for Roman Urdu words
-        words = set(re.findall(r'\b\w+\b', text))
-        roman_urdu_matches = sum(
-            1 for word in words 
-            if word in self.ADMISSION_ROMAN_URDU_WORDS
-        )
-        score += min(roman_urdu_matches * 0.1, 0.4)
-        max_score += 0.4
-        
-        # Check for characteristic Roman Urdu spellings
-        # Double vowels (aa, ee, oo)
-        double_vowel_count = len(re.findall(r'(aa|ee|oo|ii|uu)', text))
-        score += min(double_vowel_count * 0.05, 0.2)
-        max_score += 0.2
-        
-        # Normalize score
-        if max_score > 0:
-            return min(score / max_score, 1.0)
-        return 0.0
+                hits += 1
+
+        return min(hits / len(tokens), 1.0)
     
-    def is_roman_urdu(self, text: str, threshold: float = 0.5) -> bool:
+    def is_roman_urdu(self, text: str, threshold: float = 0.30) -> bool:
         """
         Check if text is Roman Urdu.
         

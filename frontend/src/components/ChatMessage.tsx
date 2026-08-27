@@ -5,6 +5,7 @@ import { BookOpen } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import CitationCard from './CitationCard'
+import { formatLatency } from '@/lib/format'
 import { useState } from 'react'
 
 interface ChatMessageProps {
@@ -91,7 +92,9 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             <span className="font-mono text-[10px] uppercase tracking-tighter2 text-neutral-400">
               {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
-            {!isUser && message.latency_ms && <MetaChip>{message.latency_ms}ms</MetaChip>}
+            {!isUser && message.latency_ms != null && (
+              <MetaChip>{formatLatency(message.latency_ms)}</MetaChip>
+            )}
             {!isUser && message.llm_provider && <MetaChip>{message.llm_provider}</MetaChip>}
             {!isUser && message.language && (
               <span className="rounded-sm bg-primary-100 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-tighter2 text-primary-700">

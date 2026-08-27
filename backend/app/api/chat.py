@@ -17,6 +17,8 @@ import logging
 
 from ..core.database import get_db, SessionLocal
 from ..core.config import settings
+from ..core import cache
+from ..core.ratelimit import limiter, CHAT_RATE_LIMIT
 from ..core.security import get_current_user
 from ..models import QueryLog
 from ..services.roman_urdu import LanguageDetector, RomanUrduNormalizer
@@ -81,7 +83,7 @@ class _RagContext:
     max_tokens: int
 
 
-def _build_rag_context(query: str, db: Session, request: "ChatRequest") -> Optional[_RagContext]:
+def _build_rag_context(query: str, db: Session, chat_request: "ChatRequest") -> Optional[_RagContext]:
     """
     Detect language, retrieve chunks and build the prompt for a query.
 
@@ -103,8 +105,8 @@ def _build_rag_context(query: str, db: Session, request: "ChatRequest") -> Optio
     results = retriever.retrieve(
         query=normalized_query,
         db=db,
-        top_k=request.top_k,
-        use_hybrid=request.use_hybrid,
+        top_k=chat_request.top_k,
+        use_hybrid=chat_request.use_hybrid,
         broad=is_broad,
     )
     if not results:
@@ -134,6 +136,9 @@ def _build_rag_context(query: str, db: Session, request: "ChatRequest") -> Optio
         # Same constant the broad retrieval path used, so the prompt cap and
         # the retrieval budget cannot drift apart - they were 40 and 76.
         max_chunks=BROAD_CHUNK_BUDGET if is_broad else 10,
+        # So Roman Urdu / code-mixed queries are answered in kind instead of
+        # always in English.
+        language=language,
     )
 
     return _RagContext(
@@ -171,7 +176,8 @@ def _format_citations(citations: List, chunks: List) -> List[Dict]:
 
 
 def _log_query(db: Session, *, query: str, ctx: _RagContext, response_text: str,
-               latency_ms: int, provider_name: str, user_id) -> None:
+               latency_ms: int, provider_name: str, user_id,
+               cache_hit: bool = False) -> None:
     """Record a query for analytics. Never fails the request."""
     try:
         db.add(QueryLog(
@@ -180,7 +186,7 @@ def _log_query(db: Session, *, query: str, ctx: _RagContext, response_text: str,
             normalized_query=ctx.normalized_query,
             response=response_text,
             latency_ms=latency_ms,
-            cache_hit=False,
+            cache_hit=cache_hit,
             llm_provider=provider_name,
             retrieval_scores=json.dumps(ctx.retrieval_scores),
             topic=classify_topic(ctx.normalized_query),
@@ -192,11 +198,33 @@ def _log_query(db: Session, *, query: str, ctx: _RagContext, response_text: str,
         logger.warning(f"Failed to log query: {e}")
 
 
+def _log_cache_hit(db: Session, *, query: str, cached: dict, latency_ms: int, user_id) -> None:
+    """Record a cache-served query so analytics still counts it. Never fails the request."""
+    try:
+        db.add(QueryLog(
+            query_text=query,
+            detected_language=cached.get("language"),
+            normalized_query=cached.get("normalized_query"),
+            response=cached.get("response"),
+            latency_ms=latency_ms,
+            cache_hit=True,
+            llm_provider=cached.get("llm_provider"),
+            retrieval_scores=None,
+            topic=cached.get("topic"),
+            user_id=user_id,
+        ))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"Failed to log cache hit: {e}")
+
+
 @router.post("/chat", response_model=ChatResponse)
+@limiter.limit(CHAT_RATE_LIMIT)
 def chat(
-    request: ChatRequest,
+    request: Request,
+    payload: ChatRequest,
     db: Session = Depends(get_db),
-    client_request: Request = None,
     current_user=Depends(get_current_user),
 ):
     """
@@ -216,18 +244,31 @@ def chat(
     """
     start_time = time.time()
 
-    query = request.query.strip()
+    query = payload.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
-    # Step 3: Check cache (optional - implement Redis caching)
-    # cache_key = f"query:{normalized_query}"
-    # cached_response = await cache.get(cache_key)
-    # if cached_response:
-    #     return ChatResponse(**cached_response, cache_hit=True)
+    user_id = current_user.id if current_user else None
+
+    # Serve an identical prior answer from Redis without touching retrieval or
+    # the LLM. Key covers the retrieval knobs so a different top_k / hybrid
+    # flag is a different entry.
+    cache_key = cache.make_key(query, payload.top_k, payload.use_hybrid)
+    cached = cache.get_cached(cache_key)
+    if cached:
+        latency_ms = int((time.time() - start_time) * 1000)
+        _log_cache_hit(db, query=query, cached=cached, latency_ms=latency_ms, user_id=user_id)
+        return ChatResponse(
+            response=cached["response"],
+            citations=cached["citations"],
+            latency_ms=latency_ms,
+            llm_provider=cached["llm_provider"],
+            cache_hit=True,
+            language=cached["language"],
+        )
 
     # Steps 1-5: language detection, normalization, retrieval, prompt build
-    ctx = _build_rag_context(query, db, request)
+    ctx = _build_rag_context(query, db, payload)
     if ctx is None:
         language, _ = language_detector.detect(query)
         return ChatResponse(
@@ -272,6 +313,18 @@ def chat(
 
     latency_ms = int((time.time() - start_time) * 1000)
 
+    # Cache successful, model-generated answers only. "none"/"fallback" mean the
+    # answer is a placeholder or raw excerpts - not worth replaying for a day.
+    if provider_name not in ("none", "fallback"):
+        cache.set_cached(cache_key, {
+            "response": response_text,
+            "citations": citation_list,
+            "language": ctx.language,
+            "llm_provider": provider_name,
+            "normalized_query": ctx.normalized_query,
+            "topic": classify_topic(ctx.normalized_query),
+        })
+
     # Step 8: Log query for analytics
     _log_query(
         db,
@@ -280,7 +333,7 @@ def chat(
         response_text=response_text,
         latency_ms=latency_ms,
         provider_name=provider_name,
-        user_id=current_user.id if current_user else None,
+        user_id=user_id,
     )
 
     return ChatResponse(
@@ -294,8 +347,10 @@ def chat(
 
 
 @router.post("/chat/stream")
+@limiter.limit(CHAT_RATE_LIMIT)
 async def chat_stream(
-    request: ChatRequest,
+    request: Request,
+    payload: ChatRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -316,20 +371,44 @@ async def chat_stream(
     the client. It also removes the ambiguity of a literal "[DONE]" appearing
     in an answer.
     """
-    query = request.query.strip()
+    query = payload.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     start_time = time.time()
     user_id = current_user.id if current_user else None
 
+    def event(data: Dict) -> str:
+        return f"data: {json.dumps(data)}\n\n"
+
+    # Replay a cached answer as a single token event rather than re-streaming
+    # it from the model.
+    cache_key = cache.make_key(query, payload.top_k, payload.use_hybrid)
+    cached = cache.get_cached(cache_key)
+    if cached:
+        latency_ms = int((time.time() - start_time) * 1000)
+        _log_cache_hit(db, query=query, cached=cached, latency_ms=latency_ms, user_id=user_id)
+
+        async def replay():
+            yield event({
+                "type": "meta",
+                "language": cached["language"],
+                "citations": cached["citations"],
+            })
+            yield event({"type": "token", "text": cached["response"]})
+            yield event({
+                "type": "done",
+                "latency_ms": latency_ms,
+                "llm_provider": cached["llm_provider"],
+                "cache_hit": True,
+            })
+
+        return StreamingResponse(replay(), media_type="text/event-stream")
+
     # Retrieval, embedding and the database calls behind them are blocking and
     # this endpoint is async, so they go to a worker thread rather than
     # stalling the event loop for every other request in flight.
-    ctx = await anyio.to_thread.run_sync(_build_rag_context, query, db, request)
-
-    def event(payload: Dict) -> str:
-        return f"data: {json.dumps(payload)}\n\n"
+    ctx = await anyio.to_thread.run_sync(_build_rag_context, query, db, payload)
 
     if ctx is None:
         language, _ = language_detector.detect(query)
@@ -388,6 +467,19 @@ async def chat_stream(
             "llm_provider": provider_name,
         })
 
+        answer = "".join(parts)
+
+        # Cache only a complete, model-generated answer.
+        if answer and provider_name not in ("none", "fallback", "error"):
+            cache.set_cached(cache_key, {
+                "response": answer,
+                "citations": _format_citations(ctx.citations, ctx.chunks),
+                "language": ctx.language,
+                "llm_provider": provider_name,
+                "normalized_query": ctx.normalized_query,
+                "topic": classify_topic(ctx.normalized_query),
+            })
+
         # Log on a session of this generator's own. The request-scoped session
         # from Depends(get_db) is closed once the endpoint returns, which for a
         # StreamingResponse happens before a single token has been generated.
@@ -398,7 +490,7 @@ async def chat_stream(
                     log_db,
                     query=query,
                     ctx=ctx,
-                    response_text="".join(parts),
+                    response_text=answer,
                     latency_ms=latency_ms,
                     provider_name=provider_name,
                     user_id=user_id,

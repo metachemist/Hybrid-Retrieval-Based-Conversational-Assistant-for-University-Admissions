@@ -5,13 +5,14 @@ Handles document upload, ingestion, and management.
 """
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 import os
 import uuid
 
 from ..core.database import get_db
+from ..core.config import settings
 from ..core.security import require_admin
 from ..models import Document, Chunk
 from ..services.retrieval.pdf_processor import PDFProcessor
@@ -29,9 +30,8 @@ class DocumentInfo(BaseModel):
     total_pages: int
     chunk_count: int
     ingested_at: datetime
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class IngestResponse(BaseModel):
@@ -74,9 +74,9 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
     
     # Create data directory if not exists
-    data_dir = "data/raw"
+    data_dir = os.path.abspath(settings.UPLOAD_DIR)
     os.makedirs(data_dir, exist_ok=True)
-    
+
     # Save file
     file_id = str(uuid.uuid4())
     file_path = os.path.join(data_dir, f"{file_id}_{file.filename}")

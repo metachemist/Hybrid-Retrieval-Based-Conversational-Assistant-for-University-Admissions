@@ -4,6 +4,7 @@ Keyword-based topic classifier for admission queries.
 Classifies against the normalized query so Roman Urdu terms already
 translated by the normalizer still match English keywords.
 """
+import re
 
 TOPIC_KEYWORDS: dict[str, list[str]] = {
     "eligibility": [
@@ -41,6 +42,15 @@ TOPIC_KEYWORDS: dict[str, list[str]] = {
 }
 
 
+# Whole-word / whole-phrase match, compiled once per keyword. Substring
+# matching mislabelled queries: "date" fired on "candi**date**", "rs" on
+# "cou**rs**es", "inter" on "**inter**net".
+_KEYWORD_PATTERNS: dict[str, list[re.Pattern]] = {
+    topic: [re.compile(r"\b" + re.escape(kw) + r"\b") for kw in keywords]
+    for topic, keywords in TOPIC_KEYWORDS.items()
+}
+
+
 def classify(query: str) -> str:
     """
     Classify a query into one of the topic categories.
@@ -56,8 +66,8 @@ def classify(query: str) -> str:
     best_topic = "general"
     best_score = 0
 
-    for topic, keywords in TOPIC_KEYWORDS.items():
-        score = sum(1 for kw in keywords if kw in query_lower)
+    for topic, patterns in _KEYWORD_PATTERNS.items():
+        score = sum(1 for pat in patterns if pat.search(query_lower))
         if score > best_score:
             best_score = score
             best_topic = topic

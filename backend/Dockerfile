@@ -19,6 +19,6 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Default command (shell form so Railway's injected $PORT is respected)
+# Shell form so the platform's injected $PORT (Render, Railway, ...) is respected.
 # Runs migrations before starting the server so the DB schema is up to date on each deploy.
 CMD alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}

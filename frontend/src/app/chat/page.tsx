@@ -70,48 +70,53 @@ export default function ChatPage() {
   }
 
   const sendMessage = async (query: string) => {
-    if (!query.trim()) return
+    if (!query.trim() || isLoading) return
     setError(null)
     setIsLoading(true)
 
+    const assistantId = (Date.now() + 1).toString()
     setMessages((prev) => [
       ...prev,
-      {
-        id: Date.now().toString(),
-        role: 'user',
-        content: query,
-        timestamp: new Date(),
-      },
+      { id: Date.now().toString(), role: 'user', content: query, timestamp: new Date() },
+      { id: assistantId, role: 'assistant', content: '', timestamp: new Date() },
     ])
 
+    const patch = (fields: Partial<Message>) =>
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, ...fields } : m)),
+      )
+
     try {
-      const data = await api.chat({ query, top_k: 10, use_hybrid: true })
-      setMessages((prev) => [
-        ...prev,
+      let streamed = ''
+      await api.chatStream(
+        { query, top_k: 10, use_hybrid: true },
         {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.response,
-          citations: data.citations,
-          timestamp: new Date(),
-          language: data.language,
-          latency_ms: data.latency_ms,
-          llm_provider: data.llm_provider,
+          onMeta: ({ language, citations }) => patch({ language, citations }),
+          onToken: (text) => {
+            streamed += text
+            patch({ content: streamed })
+          },
+          onDone: ({ latency_ms, llm_provider }) => patch({ latency_ms, llm_provider }),
+          onError: (message) => {
+            setError(message)
+            patch({ content: streamed || 'The response could not be completed. Please try again.' })
+          },
         },
-      ])
+      )
+      // Guard against a stream that closed without emitting any text.
+      if (!streamed) {
+        patch({
+          content:
+            "I'm sorry, I couldn't produce a response. Please try rephrasing your question.",
+        })
+      }
     } catch (err) {
       console.error('Error sending message:', err)
       setError('Failed to get a response. Please try again.')
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content:
-            "I'm sorry, I encountered an error while processing your request. Please try again later.",
-          timestamp: new Date(),
-        },
-      ])
+      patch({
+        content:
+          "I'm sorry, I encountered an error while processing your request. Please try again later.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -212,10 +217,12 @@ export default function ChatPage() {
           </div>
         ) : (
           <div className="mx-auto max-w-4xl space-y-7 px-4 py-8 sm:px-6">
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-            {isLoading && <TypingIndicator />}
+            {messages
+              .filter((m) => !(m.role === 'assistant' && m.content === ''))
+              .map((message) => (
+                <ChatMessage key={message.id} message={message} />
+              ))}
+            {isLoading && messages[messages.length - 1]?.content === '' && <TypingIndicator />}
             {error && (
               <div className="flex justify-center">
                 <p

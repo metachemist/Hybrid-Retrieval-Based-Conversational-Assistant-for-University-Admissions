@@ -7,6 +7,7 @@ Supports:
 - Gemini (fallback — free tier, stricter rate limits)
 """
 import asyncio
+import time
 from typing import Optional, List, Dict, AsyncGenerator
 from abc import ABC, abstractmethod
 import logging
@@ -55,10 +56,10 @@ class LLMProviderBase(ABC):
 
 
 class GeminiProvider(LLMProviderBase):
-    """Google Gemini provider — free tier via gemini-3.6-flash."""
+    """Google Gemini provider — free tier. Model id comes from settings.GEMINI_MODEL."""
 
-    def __init__(self, model: str = "gemini-3.6-flash"):
-        self.model = model
+    def __init__(self, model: Optional[str] = None):
+        self.model = model or settings.GEMINI_MODEL
         self._client = None
 
     @property
@@ -169,7 +170,7 @@ class OpenAIProvider(LLMProviderBase):
         client = self._get_client()
         
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model=settings.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
@@ -190,7 +191,7 @@ class OpenAIProvider(LLMProviderBase):
         client = self._get_client()
         
         stream = await client.chat.completions.create(
-            model="gpt-4o",
+            model=settings.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
@@ -214,31 +215,48 @@ class LLMProvider:
     2. Gemini (fallback, free tier)
     """
 
+    # Once a provider fails this many times in a row it is skipped, but only
+    # until CIRCUIT_BREAKER_COOLDOWN seconds have passed since its last failure
+    # (half-open): a brief OpenAI blip must not disable it for the whole
+    # process lifetime, which is what happened before there was a cooldown.
+    _circuit_breaker_threshold = 3
+    _circuit_breaker_cooldown = 120.0
+
     def __init__(self):
         self.providers: List[LLMProviderBase] = [
             OpenAIProvider(),       # paid — primary
             GeminiProvider(),       # fallback (free tier)
         ]
         self._failure_counts: Dict[str, int] = {p.name: 0 for p in self.providers}
-        self._circuit_breaker_threshold = 3  # failures before skipping provider
-    
+        self._last_failure_at: Dict[str, float] = {p.name: 0.0 for p in self.providers}
+
+    def _is_tripped(self, provider_name: str) -> bool:
+        """True if the provider's breaker is open and still within its cooldown."""
+        if self._failure_counts[provider_name] < self._circuit_breaker_threshold:
+            return False
+        if time.monotonic() - self._last_failure_at[provider_name] >= self._circuit_breaker_cooldown:
+            # Cooldown elapsed — allow one trial request through.
+            return False
+        return True
+
     def _get_available_provider(self) -> Optional[LLMProviderBase]:
-        """Get the first available provider that hasn't exceeded failure threshold."""
+        """Get the first available provider whose breaker is not open."""
         for provider in self.providers:
-            if provider.is_available and self._failure_counts[provider.name] < self._circuit_breaker_threshold:
+            if provider.is_available and not self._is_tripped(provider.name):
                 return provider
         return None
-    
+
     def _record_success(self, provider_name: str):
         """Record successful request for a provider."""
         self._failure_counts[provider_name] = 0
-    
+
     def _record_failure(self, provider_name: str):
         """Record failed request for a provider."""
         self._failure_counts[provider_name] = min(
             self._failure_counts[provider_name] + 1,
             self._circuit_breaker_threshold + 1
         )
+        self._last_failure_at[provider_name] = time.monotonic()
     
     async def generate(
         self,
@@ -286,7 +304,7 @@ class LLMProvider:
             if not provider.is_available:
                 continue
             
-            if self._failure_counts[provider.name] >= self._circuit_breaker_threshold:
+            if self._is_tripped(provider.name):
                 logger.warning(f"Skipping {provider.name} due to repeated failures")
                 continue
             
@@ -366,7 +384,7 @@ class LLMProvider:
             if not provider.is_available:
                 continue
 
-            if self._failure_counts[provider.name] >= self._circuit_breaker_threshold:
+            if self._is_tripped(provider.name):
                 logger.warning(f"Skipping {provider.name} due to repeated failures")
                 continue
 

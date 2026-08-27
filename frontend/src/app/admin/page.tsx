@@ -13,12 +13,7 @@ import KpiCard from '@/components/admin/KpiCard'
 import QueryVolumeChart from '@/components/admin/QueryVolumeChart'
 import LanguageChart from '@/components/admin/LanguageChart'
 import TopicChart from '@/components/admin/TopicChart'
-
-// A five-digit millisecond figure is hard to read at a glance, so anything at
-// or past a second is shown in seconds. The unit travels with the number.
-function formatLatency(ms: number): string {
-  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`
-}
+import { formatLatency } from '@/lib/format'
 
 const RANGE_OPTIONS = [
   { label: '7d', value: 7 },

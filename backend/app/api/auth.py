@@ -1,7 +1,7 @@
 """
 Authentication API Endpoints — register, login, me, forgot/reset password.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 
 from ..core.database import get_db
 from ..core.config import settings
+from ..core.ratelimit import limiter, AUTH_RATE_LIMIT
 from ..core.security import hash_password, verify_password, create_access_token, require_auth
 from ..models import User
 
@@ -87,28 +88,29 @@ class UserProfile(BaseModel):
 
 
 @router.post("/auth/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def register(request: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit(AUTH_RATE_LIMIT)
+def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)):
     """
     Register a new user.
 
     If admin_key matches ADMIN_REGISTRATION_KEY the account gets role="admin".
     Otherwise role="user". The admin_key is never stored or returned.
     """
-    if len(request.password) < 8:
+    if len(payload.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
 
-    existing = db.query(User).filter(User.email == request.email).first()
+    existing = db.query(User).filter(User.email == payload.email).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
     role = "user"
-    if request.admin_key and request.admin_key == settings.ADMIN_REGISTRATION_KEY:
+    if payload.admin_key and payload.admin_key == settings.ADMIN_REGISTRATION_KEY:
         role = "admin"
 
     user = User(
         id=str(uuid.uuid4()),
-        email=request.email,
-        password_hash=hash_password(request.password),
+        email=payload.email,
+        password_hash=hash_password(payload.password),
         role=role,
     )
     db.add(user)
@@ -120,11 +122,12 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/auth/login", response_model=AuthResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit(AUTH_RATE_LIMIT)
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     """Login and receive a JWT access token."""
-    user = db.query(User).filter(User.email == request.email).first()
+    user = db.query(User).filter(User.email == payload.email).first()
 
-    if not user or not verify_password(request.password, user.password_hash):
+    if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

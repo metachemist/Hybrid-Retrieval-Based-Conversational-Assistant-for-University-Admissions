@@ -48,6 +48,25 @@ class TestLanguageDetector:
             lang, confidence = self.detector.detect(question)
             assert lang in ('ur', 'mixed'), f"Failed for: {question}"
     
+    def test_roman_urdu_with_english_loanword(self):
+        """A single English loanword must not flip a Roman Urdu query to English."""
+        for q in [
+            "form kaise submit karna hai",
+            "documents ke liye kya requirements hain",
+            "online apply karne ka tarika kya hai",
+        ]:
+            lang, _ = self.detector.detect(q)
+            assert lang in ('ur', 'mixed'), f"Failed for: {q}"
+
+    def test_plain_english_not_flagged(self):
+        """Longer English sentences stay English."""
+        for q in [
+            "How do I submit the admission form online?",
+            "What are the requirements for the computer science program?",
+        ]:
+            lang, _ = self.detector.detect(q)
+            assert lang == 'en', f"Failed for: {q}"
+
     def test_is_roman_urdu(self):
         """Test Roman Urdu boolean check."""
         assert self.detector.is_roman_urdu("admission ke liye kya chahiye?")

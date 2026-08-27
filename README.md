@@ -11,10 +11,10 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 - **Hybrid Retrieval**: Combines keyword search (BM25) with semantic vector search using Reciprocal Rank Fusion (RRF)
 - **Multilingual Support**: Handles English, Roman Urdu, and code-mixed query
 - **Citation-Grounded Responses**: All answers include citations to source documents
-- **LLM Fallback Chain**: Automatic failover from Gemini to Anthropic to OpenAI to Ollama
+- **LLM Fallback Chain**: OpenAI (primary) with automatic failover to Gemini (free tier), plus a per-provider circuit breaker
 - **Authentication**: User login, registration, and forgot/reset password flows
 - **Admin Panel**: Document management and ingestion interface
-- **Caching & Rate Limiting**: Redis-backed caching with per-minute/per-hour rate limits
+- **Caching & Rate Limiting**: optional Redis response cache; per-IP per-minute/per-hour rate limits on the chat and auth endpoints
 - **Monitoring**: Sentry integration for error tracking
 
 ## Tech Stack
@@ -25,10 +25,10 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 | Backend | FastAPI (Python 3.11+) |
 | Database | Neon PostgreSQL + pgvector |
 | Migrations | Alembic |
-| Embeddings | multilingual-e5-large (prod) / text-embedding-3-small (dev) |
-| LLM | Google Gemini (primary) / Anthropic Claude / OpenAI GPT / Ollama |
+| Embeddings | OpenAI text-embedding-3-small (1536-dim) |
+| LLM | OpenAI GPT (primary) / Google Gemini (fallback) |
 | Document Processing | PyMuPDF |
-| Caching | Redis |
+| Caching | Redis (optional) |
 
 ## Quick Start
 
@@ -37,8 +37,10 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 - Python 3.11+
 - Node.js 20+
 - PostgreSQL 15+ with pgvector extension
-- Redis
-- At least one LLM API key (Gemini recommended, free tier)
+- Redis (optional — enables the response cache; the app runs without it)
+- An OpenAI API key (required for embeddings + primary LLM); a Gemini key is an optional free-tier fallback
+
+The fastest way to get Postgres + Redis locally is `docker compose up postgres redis`.
 
 ### Backend Setup
 
@@ -81,23 +83,24 @@ Key variables in `backend/.env`:
 # Database (Neon PostgreSQL)
 DATABASE_URL="postgresql://user:password@host/admission_db"
 
-# LLM Provider Keys (set at least one; Gemini is free-tier)
-GEMINI_API_KEY=""
-ANTHROPIC_API_KEY=""
+# LLM Provider Keys — OpenAI is required, Gemini is an optional fallback
 OPENAI_API_KEY=""
+GEMINI_API_KEY=""
+OPENAI_MODEL="gpt-4o"
+GEMINI_MODEL="gemini-3.6-flash"   # Google rotates these; set to whatever is current
 
-# Embedding Model
-EMBEDDING_MODEL="text-embedding-3-small"   # dev
-# EMBEDDING_MODEL="intfloat/multilingual-e5-large"  # prod
+# Embedding Model (OpenAI, 1536-dim)
+EMBEDDING_MODEL="text-embedding-3-small"
 
-# Redis
+# Redis — leave blank to disable the response cache
 REDIS_URL="redis://localhost:6379"
 
-# Auth
+# Auth — the app refuses to start with these placeholders unless DEBUG=true.
+# Generate: python -c "import secrets; print(secrets.token_urlsafe(48))"
 SECRET_KEY="change-me-in-production"
 ADMIN_REGISTRATION_KEY="your-strong-admin-key"
 
-# Rate Limiting
+# Rate Limiting (per client IP, applied to /api/chat* and /api/auth/{login,register})
 RATE_LIMIT_PER_MINUTE=10
 RATE_LIMIT_PER_HOUR=100
 ```
@@ -210,11 +213,11 @@ pytest tests/ -v
 ### Linting
 
 ```bash
-cd backend
-ruff check app/
+# backend (ruff is not in requirements.txt; install it first)
+cd backend && pip install ruff && ruff check app/
 
-cd frontend
-npm run lint
+# frontend
+cd frontend && npm run lint
 ```
 
 ## Deployment
@@ -225,9 +228,13 @@ npm run lint
 | Backend | Render |
 | Database | Neon |
 
-Backend is deployed on Render (Docker web service) at `https://university-admissions-chatbot.onrender.com`. Railway was tried first but hit deployment errors. Set `API_URL` in the Vercel environment to point to the Render backend.
+Backend is deployed on Render (Docker web service) at `https://university-admissions-chatbot.onrender.com`. Railway was tried first but hit deployment errors. Set `NEXT_PUBLIC_API_URL` in the Vercel environment to point to the Render backend.
+
+On Render, set `SECRET_KEY`, `ADMIN_REGISTRATION_KEY`, `OPENAI_API_KEY` (and optionally `GEMINI_API_KEY`, `REDIS_URL`) as environment variables. Leave `DEBUG` unset/false — the backend refuses to start with placeholder auth secrets when `DEBUG` is off.
 
 > Free-tier Render instances spin down after inactivity; the first request after idling can take 50+ seconds to respond.
+>
+> Render's free tier has an ephemeral filesystem: PDFs uploaded through the admin panel are lost on redeploy, which also breaks `POST /api/documents/{id}/reindex`. Point `UPLOAD_DIR` at a mounted disk (or use object storage) for durable uploads.
 
 ## License
 
