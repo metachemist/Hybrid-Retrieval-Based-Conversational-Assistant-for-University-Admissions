@@ -73,8 +73,8 @@ export default function GenerativeGrid({
   className = '',
   accent = '218, 250, 156', // primary-300 (#dafa9c)
   chars = [' ', '.', ':', '-', '+', '*', '#', '%', '@'],
-  cell = 13,
-  fontSize = 11,
+  cell = 10,
+  fontSize = 8,
   minOpacity = 0.07,
   maxOpacity = 0.65,
   intervalMs = 90,

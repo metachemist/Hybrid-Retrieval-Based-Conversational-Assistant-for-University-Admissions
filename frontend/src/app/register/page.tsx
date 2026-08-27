@@ -3,8 +3,31 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { GraduationCap, UserPlus, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+
+/**
+ * Registration, styled to the landing page's system rather than to a generic
+ * SaaS auth screen: uppercase display headings, mono micro-labels with
+ * negative tracking, squared surfaces, and the single lime accent. The dark
+ * left panel reuses the hero's dotted rule grid so the two read as one site.
+ */
+
+/** What the dark panel advertises. Mirrors the landing page's numbered features. */
+const HIGHLIGHTS = [
+  { n: '01', title: 'Hybrid retrieval', body: 'Keyword and vector search, fused into one ranking.' },
+  { n: '02', title: 'English + Roman Urdu', body: 'Ask the way you actually type.' },
+  { n: '03', title: 'Cited sources', body: 'Every answer links back to the document it came from.' },
+]
+
+/** Mono micro-label above a field. Matches .label-mono, sized down for forms. */
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="mb-2 block font-mono text-[11px] uppercase tracking-tighter2 text-muted">
+      {children}
+    </label>
+  )
+}
 
 export default function RegisterPage() {
   const { register, user, isLoading } = useAuth()
@@ -41,89 +64,141 @@ export default function RegisterPage() {
     }
   }
 
-  const inputClass = `w-full border border-neutral-300 rounded-xl px-4 py-3 text-sm
-                      text-neutral-900 placeholder-neutral-400
-                      focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-                      transition-shadow`
+  // Squared, hairline-bordered inputs. The border darkens on focus instead of
+  // growing a coloured ring, which keeps the form quiet next to the accent.
+  const inputClass = `w-full rounded-none border border-neutral-300 bg-white px-4 py-3
+                      text-[15px] text-neutral-900 placeholder-neutral-400
+                      transition-colors focus:border-neutral-900 focus:outline-none`
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-screen">
 
-      {/* ── Left panel (decorative) ──────────────────────── */}
-      <div className="dot-grid-dark hidden lg:flex lg:w-5/12 bg-[#111111] flex-col items-center justify-center
-                      relative overflow-hidden p-12 select-none">
-        <div className="relative z-10 text-center">
-          <div className="w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center
-                          justify-center mx-auto mb-8 border border-white/10 animate-float">
-            <GraduationCap className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="font-display font-bold text-6xl gradient-text leading-tight mb-4 animate-in-up">
-            Start your<br />journey
-          </h1>
-          <p className="text-neutral-500 text-sm leading-relaxed max-w-xs mx-auto animate-in-up stagger-1">
-            Create an account to access Rehnuma, the University of Karachi admissions assistant.
-            Admins use a private key during registration.
-          </p>
-          <div className="flex gap-3 mt-10 justify-center flex-wrap">
-            {['Instant Answers', 'RAG-Powered', 'Roman Urdu Support'].map((tag, i) => (
-              <span key={tag}
-                style={{ animationDelay: `${0.3 + i * 0.08}s` }}
-                className="animate-in-up px-3 py-1 rounded-full bg-white/5 border border-white/10
-                           text-xs text-neutral-400 font-medium hover:border-primary-400/40
-                           hover:text-primary-300 transition-colors">
-                {tag}
-              </span>
-            ))}
+      {/* ══ Left panel: dark, dotted rule grid, wordmark + statement ══ */}
+      <div className="grid-lines-dark relative hidden select-none flex-col justify-between
+                      overflow-hidden bg-ink p-12 text-white lg:flex lg:w-5/12 xl:p-14">
+
+        {/* Wordmark + session meta, same pairing as the landing hero */}
+        <div className="flex items-start justify-between gap-6">
+          <Link href="/" className="display-lg text-[26px] transition-opacity hover:opacity-70">
+            Rehnuma
+          </Link>
+          <div className="flex items-start gap-2.5 text-right text-[13px] leading-relaxed text-neutral-400">
+            <span className="mt-[6px] h-2 w-2 shrink-0 bg-primary-300" />
+            <span>
+              Admissions 2026
+              <br />
+              University of Karachi
+            </span>
           </div>
         </div>
+
+        {/* Statement */}
+        <div className="max-w-[22rem] py-14">
+          <p className="label-mono mb-6">Create an account</p>
+          <h1 className="display-xl text-[clamp(2.4rem,3.6vw,3.4rem)]">
+            Start your
+            <br />
+            <span className="text-primary-300">journey.</span>
+          </h1>
+          <p className="mt-8 text-[15px] leading-[1.7] text-neutral-400">
+            One account gives you the full assistant: ask about eligibility, fees, deadlines and
+            required documents, and get answers pulled straight from official policy documents.
+          </p>
+        </div>
+
+        {/* Numbered highlights, echoing the landing page's feature list */}
+        <ul className="border-t border-white/15">
+          {HIGHLIGHTS.map(({ n, title, body }) => (
+            <li key={n} className="flex gap-5 border-b border-white/10 py-4">
+              <span className="mt-[3px] font-mono text-[11px] tracking-tighter2 text-primary-300">
+                {n}
+              </span>
+              <span>
+                <span className="block text-[14px] font-medium text-white">{title}</span>
+                <span className="mt-1 block text-[13px] leading-relaxed text-neutral-500">
+                  {body}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* ── Right panel (form) ───────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center bg-white px-8 py-12">
-        <div className="w-full max-w-sm animate-in-up">
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 bg-neutral-900 rounded-xl flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-neutral-900 leading-none">Rehnuma</p>
-              <p className="text-xs text-neutral-500 leading-none mt-0.5">University of Karachi</p>
-            </div>
-          </div>
+      {/* ══ Right panel: the form ═══════════════════════════════════ */}
+      <div className="flex flex-1 items-center justify-center bg-white px-6 py-14 sm:px-10">
+        <div className="w-full max-w-[26rem]">
 
-          <h2 className="font-display font-bold text-3xl text-neutral-900 mb-1">Create account</h2>
-          <p className="text-sm text-neutral-500 mb-8">Get started in seconds.</p>
+          {/* Mobile wordmark, since the dark panel is hidden below lg */}
+          <Link href="/" className="mb-12 flex items-center gap-3 lg:hidden">
+            <span className="h-2.5 w-2.5 bg-primary-500" />
+            <span className="display-lg text-[20px] text-neutral-900">Rehnuma</span>
+          </Link>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <p className="label-mono mb-5">Registration</p>
+          <h2 className="display-lg text-[clamp(1.9rem,4vw,2.4rem)] text-neutral-900">
+            Create account
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-neutral-500">
+            Already registered?{' '}
+            <Link
+              href="/login"
+              className="border-b border-neutral-400 pb-[1px] font-medium text-neutral-900
+                         transition-colors hover:border-primary-500 hover:text-primary-600"
+            >
+              Sign in instead
+            </Link>
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-10 space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide mb-1.5">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                required className={inputClass} placeholder="you@example.com" />
+              <FieldLabel>Email</FieldLabel>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                className={inputClass}
+                placeholder="you@example.com"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide mb-1.5">Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                required minLength={8} className={inputClass} placeholder="Min. 8 characters" />
+              <FieldLabel>Password</FieldLabel>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                minLength={8}
+                className={inputClass}
+                placeholder="Minimum 8 characters"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide mb-1.5">Confirm Password</label>
-              <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
-                required className={inputClass} placeholder="••••••••" />
+              <FieldLabel>Confirm password</FieldLabel>
+              <input
+                type="password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                required
+                className={inputClass}
+                placeholder="Repeat your password"
+              />
             </div>
 
-            {/* Collapsible admin key */}
-            <div>
+            {/* Admin key, kept collapsed: relevant to a handful of staff accounts */}
+            <div className="border-t border-neutral-200 pt-5">
               <button
                 type="button"
                 onClick={() => setShowAdminKey(v => !v)}
-                className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-neutral-600 transition-colors font-medium"
+                aria-expanded={showAdminKey}
+                className="flex items-center gap-1.5 font-mono text-[11px] uppercase
+                           tracking-tighter2 text-muted transition-colors hover:text-neutral-900"
               >
                 {showAdminKey
-                  ? <ChevronUp className="w-3.5 h-3.5" />
-                  : <ChevronDown className="w-3.5 h-3.5" />}
+                  ? <ChevronDown className="h-3.5 w-3.5" />
+                  : <ChevronRight className="h-3.5 w-3.5" />}
                 Admin registration key (optional)
               </button>
               {showAdminKey && (
@@ -131,54 +206,51 @@ export default function RegisterPage() {
                   type="password"
                   value={adminKey}
                   onChange={e => setAdminKey(e.target.value)}
-                  className={`mt-2 ${inputClass}`}
+                  className={`mt-3 ${inputClass}`}
                   placeholder="Enter admin key to register as admin"
                 />
               )}
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700
-                              px-4 py-3 rounded-xl text-sm">
-                <span className="mt-0.5">⚠</span>
-                <span>{error}</span>
+              <div
+                role="alert"
+                className="border-l-2 border-red-500 bg-red-50 px-4 py-3 text-[14px] text-red-800"
+              >
+                {error}
               </div>
             )}
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-primary-300 hover:bg-primary-200 text-neutral-900 py-3 px-4 rounded-full
-                         text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed
-                         flex items-center justify-center gap-2 transition-all mt-2
-                         hover:scale-[1.02] active:scale-[0.98]"
+              className="group flex w-full items-center justify-center gap-2 rounded
+                         bg-primary-300 px-7 py-4 text-[15px] font-medium tracking-[0.01em]
+                         text-neutral-900 transition-colors hover:bg-primary-200
+                         disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-neutral-900/30 border-t-neutral-900 rounded-full animate-spin" />
-                  Creating account…
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-900/30 border-t-neutral-900" />
+                  Creating account
                 </>
               ) : (
                 <>
-                  <UserPlus className="w-4 h-4" />
                   Create account
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-neutral-100 space-y-2 text-sm text-center">
-            <p className="text-neutral-500">
-              Already have an account?{' '}
-              <Link href="/login" className="text-primary-600 hover:text-primary-700 font-semibold">
-                Sign in
-              </Link>
-            </p>
-            <Link href="/" className="flex items-center justify-center gap-1 text-neutral-400 hover:text-neutral-600 transition-colors">
-              <ArrowRight className="w-3.5 h-3.5 rotate-180" />
-              Back to home
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="mt-10 inline-flex items-center gap-2 font-mono text-[11px] uppercase
+                       tracking-tighter2 text-muted transition-colors hover:text-neutral-900"
+          >
+            <ArrowRight className="h-3.5 w-3.5 rotate-180" />
+            Back to home
+          </Link>
         </div>
       </div>
     </div>

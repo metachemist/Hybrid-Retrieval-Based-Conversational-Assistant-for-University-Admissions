@@ -231,7 +231,7 @@ export default function LandingPage() {
             <div>
               <Reveal delay={30}>
                 <h1 className="display-xl text-[clamp(2.2rem,4.6vw,4rem)]">
-                  Stop guessing.
+                  Stop asking relatives.
                   <br />
                   <span className="text-primary-300">Ask Rehnuma.</span>
                 </h1>
@@ -247,7 +247,7 @@ export default function LandingPage() {
               <Reveal delay={220}>
                 <div className="mt-11 flex flex-col items-stretch gap-3 sm:flex-row sm:items-start">
                   <SlideButton href="/login" icon={<ArrowRight className="h-4 w-4" />}>
-                    Take me to the chatbot
+                    Take me to the Rehnuma
                   </SlideButton>
                   <SlideButton href="/register" variant="outline">
                     Create an account
@@ -304,6 +304,62 @@ export default function LandingPage() {
           </div>
         </section>
       </div>
+
+      {/* ══ Dark inset: the problem ═══════════════════════════ */}
+      <section id="problem" className="px-4 pb-24 pt-16 sm:px-8 sm:pt-24">
+        <div className="dot-grid-dark relative overflow-hidden rounded-sm bg-ink text-white">
+          <div className="mx-auto max-w-shell px-6 py-24 sm:px-10 sm:py-32">
+            <div className="grid items-start gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+              <Reveal>
+                <p className="label-mono mb-7">The problem</p>
+                <h2 className="display-xl max-w-[14ch] text-[clamp(2.4rem,5.4vw,4.6rem)]">
+                  Even phoppo can get it wrong.
+                </h2>
+                <p className="mt-8 max-w-[34rem] text-[17px] leading-[1.7] text-neutral-400">
+                  Every family has one — the mamu, phoppo or chacha who&apos;s &quot;been through
+                  this&quot; and always has an answer, whether or not it&apos;s still true.
+                </p>
+                <p className="mt-4 max-w-[34rem] text-[17px] leading-[1.7] text-neutral-400">
+                  The real one is sitting in the prospectus the whole time. It&apos;s just long,
+                  scattered, and hard to search — so the question passes through four or five
+                  people before it&apos;s answered, and by then it&apos;s often wrong.
+                </p>
+              </Reveal>
+
+              <Reveal delay={140}>
+                <div className="mx-auto max-w-sm space-y-3">
+                  {[
+                    ['MAMU', '5,000 hoga, form ke sath jama karado'],
+                    ['PHOPPO', 'Fee to hamesha se yehi tha, 8 hazar ke qareeb'],
+                    ['CHACHA', '10,000 se zyada nahi hoga, main dekh k aya tha'],
+                  ].map(([who, quote]) => (
+                    <div key={who} className="flex flex-col items-start gap-1.5">
+                      <span className="ml-1 font-mono text-[10px] tracking-tighter2 text-neutral-500">
+                        {who}
+                      </span>
+                      <div className="max-w-[82%] rounded-2xl rounded-tl-sm bg-white/10 px-4 py-2.5 text-[14px] leading-[1.5] text-neutral-300">
+                        {quote}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex flex-col items-end gap-1.5 pt-3">
+                    <span className="mr-1 font-mono text-[10px] tracking-tighter2 text-primary-300">
+                      REHNUMA
+                    </span>
+                    <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary-300 px-4 py-2.5 text-[14px] leading-[1.5] text-neutral-900">
+                      Registration / Admission Fee is Rs. 12,000, one-time.
+                    </div>
+                    <span className="mr-1 font-mono text-[11px] tracking-tighter2 text-neutral-500">
+                      KUBS Prospectus 2024 · Fee Structure · p.46
+                    </span>
+                  </div>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ══ Light block: statement + stats ═══════════════════ */}
       <section className="mx-auto max-w-shell px-6 py-28 sm:px-10 sm:py-36">
@@ -561,7 +617,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-11 flex justify-center">
               <SlideButton href="/login" icon={<ArrowRight className="h-4 w-4" />}>
-                Take me to the chatbot
+                Take me to the Rehnuma
               </SlideButton>
             </div>
           </Reveal>

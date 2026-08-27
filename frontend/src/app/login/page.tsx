@@ -46,7 +46,7 @@ export default function LoginPage() {
                           justify-center mx-auto mb-8 border border-white/10 animate-float">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="font-display font-bold text-6xl gradient-text leading-tight mb-4 animate-in-up">
+          <h1 className="display-xl text-6xl text-primary-300 mb-4 animate-in-up">
             University of<br />Karachi
           </h1>
           <p className="text-neutral-500 text-sm leading-relaxed max-w-xs mx-auto animate-in-up stagger-1">
@@ -82,12 +82,12 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <h2 className="font-display font-bold text-3xl text-neutral-900 mb-1">Welcome back</h2>
+          <h2 className="display-lg text-3xl text-neutral-900 mb-1">Welcome back</h2>
           <p className="text-sm text-neutral-500 mb-8">Sign in to your account to continue.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-neutral-600 uppercase tracking-wide mb-1.5">
+              <label className="label-mono block mb-1.5">
                 Email
               </label>
               <input
@@ -105,7 +105,7 @@ export default function LoginPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wide">
+                <label className="label-mono">
                   Password
                 </label>
                 <Link href="/forgot-password"
