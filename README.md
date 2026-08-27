@@ -11,7 +11,7 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 - **Hybrid Retrieval**: Combines keyword search (BM25) with semantic vector search using Reciprocal Rank Fusion (RRF)
 - **Multilingual Support**: Handles English, Roman Urdu, and code-mixed query
 - **Citation-Grounded Responses**: All answers include citations to source documents
-- **LLM Fallback Chain**: OpenAI (primary) with automatic failover to Gemini (free tier), plus a per-provider circuit breaker
+- **LLM Provider Chain**: Google Gemini (primary, free tier) with optional failover to OpenAI, plus a per-provider circuit breaker
 - **Authentication**: User login, registration, and forgot/reset password flows
 - **Admin Panel**: Document management and ingestion interface
 - **Caching & Rate Limiting**: optional Redis response cache; per-IP per-minute/per-hour rate limits on the chat and auth endpoints
@@ -25,8 +25,8 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 | Backend | FastAPI (Python 3.11+) |
 | Database | Neon PostgreSQL + pgvector |
 | Migrations | Alembic |
-| Embeddings | OpenAI text-embedding-3-small (1536-dim) |
-| LLM | OpenAI GPT (primary) / Google Gemini (fallback) |
+| Embeddings | Google gemini-embedding-001 (768-dim) |
+| LLM | Google Gemini (primary) / OpenAI GPT (optional fallback) |
 | Document Processing | PyMuPDF |
 | Caching | Redis (optional) |
 
@@ -38,7 +38,7 @@ This project implements a **Retrieval-Augmented Generation (RAG)** system that h
 - Node.js 20+
 - PostgreSQL 15+ with pgvector extension
 - Redis (optional — enables the response cache; the app runs without it)
-- An OpenAI API key (required for embeddings + primary LLM); a Gemini key is an optional free-tier fallback
+- A Google Gemini API key (required — powers embeddings + answer generation); an OpenAI key is an optional generation fallback
 
 The fastest way to get Postgres + Redis locally is `docker compose up postgres redis`.
 
@@ -83,14 +83,15 @@ Key variables in `backend/.env`:
 # Database (Neon PostgreSQL)
 DATABASE_URL="postgresql://user:password@host/admission_db"
 
-# LLM Provider Keys — OpenAI is required, Gemini is an optional fallback
-OPENAI_API_KEY=""
+# LLM Provider Keys — Gemini is required, OpenAI is an optional generation fallback
 GEMINI_API_KEY=""
-OPENAI_MODEL="gpt-4o"
+OPENAI_API_KEY=""
 GEMINI_MODEL="gemini-3.6-flash"   # Google rotates these; set to whatever is current
+OPENAI_MODEL="gpt-4o"            # only used when OPENAI_API_KEY is set
 
-# Embedding Model (OpenAI, 1536-dim)
-EMBEDDING_MODEL="text-embedding-3-small"
+# Embedding Model (Google gemini-embedding-001, 768-dim)
+EMBEDDING_MODEL="gemini-embedding-001"
+EMBEDDING_DIMENSION=768
 
 # Redis — leave blank to disable the response cache
 REDIS_URL="redis://localhost:6379"
@@ -230,7 +231,7 @@ cd frontend && npm run lint
 
 Backend is deployed on Render (Docker web service) at `https://university-admissions-chatbot.onrender.com`. Railway was tried first but hit deployment errors. Set `NEXT_PUBLIC_API_URL` in the Vercel environment to point to the Render backend.
 
-On Render, set `SECRET_KEY`, `ADMIN_REGISTRATION_KEY`, `OPENAI_API_KEY` (and optionally `GEMINI_API_KEY`, `REDIS_URL`) as environment variables. Leave `DEBUG` unset/false — the backend refuses to start with placeholder auth secrets when `DEBUG` is off.
+On Render, set `SECRET_KEY`, `ADMIN_REGISTRATION_KEY`, `GEMINI_API_KEY` (and optionally `OPENAI_API_KEY`, `REDIS_URL`) as environment variables. Leave `DEBUG` unset/false — the backend refuses to start with placeholder auth secrets when `DEBUG` is off.
 
 > Free-tier Render instances spin down after inactivity; the first request after idling can take 50+ seconds to respond.
 >

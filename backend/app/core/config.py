@@ -27,20 +27,27 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/admission_db"
 
-    # Embeddings (using OpenAI API for development; switch to multilingual-e5-large for production)
-    EMBEDDING_MODEL: str = "text-embedding-3-small"
-    EMBEDDING_DIMENSION: int = 1536
+    # Embeddings — Google gemini-embedding-001 at 768 dimensions. Output dims
+    # below the native 3072 come back un-normalised, so the embedding layer
+    # L2-normalises them (cosine == dot product for the HNSW index). Keep
+    # EMBEDDING_DIMENSION in sync with app.models and the alembic migrations.
+    EMBEDDING_MODEL: str = "gemini-embedding-001"
+    EMBEDDING_DIMENSION: int = 768
 
-    # LLM Providers
+    # LLM Providers. GEMINI_API_KEY drives both retrieval embeddings and answer
+    # generation. OPENAI_API_KEY is optional — set it only to keep OpenAI as a
+    # generation fallback.
     OPENAI_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
 
     # LLM Settings
     LLM_TEMPERATURE: float = 0.3
     LLM_MAX_TOKENS: int = 1024
+    # OpenAI model for the optional generation fallback (unused when
+    # OPENAI_API_KEY is empty).
     OPENAI_MODEL: str = "gpt-4o"
-    # Gemini model id for the fallback provider. Kept in env because Google
-    # rotates these faster than we redeploy; set it to whatever is current.
+    # Gemini model id for the primary generation provider. Kept in env because
+    # Google rotates these faster than we redeploy; set it to whatever is current.
     GEMINI_MODEL: str = "gemini-3.6-flash"
 
     # Where uploaded source PDFs are written. Relative paths resolve against the

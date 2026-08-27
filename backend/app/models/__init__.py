@@ -14,7 +14,7 @@ from sqlalchemy.orm import relationship, validates
 from pgvector.sqlalchemy import Vector
 from ..core.database import Base
 
-EMBEDDING_DIMENSION = 1536  # openai text-embedding-3-small
+EMBEDDING_DIMENSION = 768  # google gemini-embedding-001 (output_dimensionality=768)
 
 
 class User(Base):

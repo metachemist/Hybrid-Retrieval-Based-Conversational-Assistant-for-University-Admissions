@@ -3,8 +3,8 @@ LLM Provider Module
 
 Provides unified interface for multiple LLM providers with automatic fallback.
 Supports:
-- OpenAI GPT (primary — paid key, most reliable for production traffic)
-- Gemini (fallback — free tier, stricter rate limits)
+- Gemini (primary — free tier; also powers retrieval embeddings)
+- OpenAI GPT (optional fallback — only active when OPENAI_API_KEY is set)
 """
 import asyncio
 import time
@@ -211,8 +211,8 @@ class LLMProvider:
     Unified LLM provider with automatic fallback.
 
     Tries providers in order:
-    1. OpenAI (primary — paid key, not subject to free-tier rate limits)
-    2. Gemini (fallback, free tier)
+    1. Gemini (primary, free tier)
+    2. OpenAI (optional fallback — skipped unless OPENAI_API_KEY is set)
     """
 
     # Once a provider fails this many times in a row it is skipped, but only
@@ -224,8 +224,8 @@ class LLMProvider:
 
     def __init__(self):
         self.providers: List[LLMProviderBase] = [
-            OpenAIProvider(),       # paid — primary
-            GeminiProvider(),       # fallback (free tier)
+            GeminiProvider(),       # primary (free tier)
+            OpenAIProvider(),       # optional fallback (skipped if no key)
         ]
         self._failure_counts: Dict[str, int] = {p.name: 0 for p in self.providers}
         self._last_failure_at: Dict[str, float] = {p.name: 0.0 for p in self.providers}

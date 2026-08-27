@@ -82,38 +82,33 @@ def ingest_document(file_path: str, title: str = None, year: int = None) -> dict
         sections = processor.extract_with_sections(file_path)
         chunker = DocumentChunker()
         embedding_model = get_embedding_model()
-        
-        total_chunks = 0
-        
+
+        all_chunks = []
         for section in sections:
-            chunks = chunker.chunk_text(
+            all_chunks.extend(chunker.chunk_text(
                 text=section.content,
                 section_header=section.section_header,
                 page_start=section.page_start,
                 page_end=section.page_end,
                 chunk_type=section.chunk_type
-            )
-            
-            # Generate embeddings and store
-            for i, chunk in enumerate(chunks):
-                embedding = embedding_model.encode_query(chunk.content)
-                
-                chunk_record = Chunk(
-                    doc_id=document.id,
-                    content=chunk.content,
-                    embedding=embedding.tolist(),
-                    section_header=chunk.section_header,
-                    page_start=chunk.page_start,
-                    page_end=chunk.page_end,
-                    chunk_type=chunk.chunk_type,
-                    chunk_order=total_chunks
-                )
-                db.add(chunk_record)
-                total_chunks += 1
-                
-                if total_chunks % 10 == 0:
-                    print(f"  Processed {total_chunks} chunks...")
-        
+            ))
+
+        # Batched embeddings, RETRIEVAL_DOCUMENT task
+        embeddings = embedding_model.encode([c.content for c in all_chunks])
+
+        for i, chunk in enumerate(all_chunks):
+            db.add(Chunk(
+                doc_id=document.id,
+                content=chunk.content,
+                embedding=embeddings[i].tolist(),
+                section_header=chunk.section_header,
+                page_start=chunk.page_start,
+                page_end=chunk.page_end,
+                chunk_type=chunk.chunk_type,
+                chunk_order=i,
+            ))
+
+        total_chunks = len(all_chunks)
         db.commit()
         
         print(f"  ✓ Ingestion complete: {total_chunks} chunks created")

@@ -123,19 +123,16 @@ async def upload_document(
             )
             all_chunks.extend(chunks)
         
-        # Generate embeddings and store chunks
+        # Generate embeddings (batched, RETRIEVAL_DOCUMENT task) and store chunks
         embedding_model = get_embedding_model()
-        
+        embeddings = embedding_model.encode([c.content for c in all_chunks])
+
         chunks_to_store = []
         for i, chunk in enumerate(all_chunks):
-            # Generate embedding
-            embedding = embedding_model.encode_query(chunk.content)
-            
-            # Create chunk record
             chunk_record = Chunk(
                 doc_id=document.id,
                 content=chunk.content,
-                embedding=embedding.tolist(),
+                embedding=embeddings[i].tolist(),
                 section_header=chunk.section_header,
                 page_start=chunk.page_start,
                 page_end=chunk.page_end,
@@ -285,30 +282,31 @@ async def reindex_document(
         chunker = DocumentChunker()
         embedding_model = get_embedding_model()
         
-        chunks_to_store = []
-        for i, section in enumerate(sections):
-            chunks = chunker.chunk_text(
+        all_chunks = []
+        for section in sections:
+            all_chunks.extend(chunker.chunk_text(
                 text=section.content,
                 section_header=section.section_header,
                 page_start=section.page_start,
                 page_end=section.page_end,
                 chunk_type=section.chunk_type
+            ))
+
+        embeddings = embedding_model.encode([c.content for c in all_chunks])
+        chunks_to_store = [
+            Chunk(
+                doc_id=document.id,
+                content=chunk.content,
+                embedding=embeddings[i].tolist(),
+                section_header=chunk.section_header,
+                page_start=chunk.page_start,
+                page_end=chunk.page_end,
+                chunk_type=chunk.chunk_type,
+                chunk_order=i,
             )
-            
-            for chunk in chunks:
-                embedding = embedding_model.encode_query(chunk.content)
-                chunk_record = Chunk(
-                    doc_id=document.id,
-                    content=chunk.content,
-                    embedding=embedding.tolist(),
-                    section_header=chunk.section_header,
-                    page_start=chunk.page_start,
-                    page_end=chunk.page_end,
-                    chunk_type=chunk.chunk_type,
-                    chunk_order=len(chunks_to_store)
-                )
-                chunks_to_store.append(chunk_record)
-        
+            for i, chunk in enumerate(all_chunks)
+        ]
+
         db.bulk_save_objects(chunks_to_store)
         db.commit()
         
