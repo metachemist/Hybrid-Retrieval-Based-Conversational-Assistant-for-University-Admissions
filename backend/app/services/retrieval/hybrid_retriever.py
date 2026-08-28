@@ -10,7 +10,7 @@ from typing import List, Tuple, Dict, Optional
 from sqlalchemy import text, func
 from sqlalchemy.orm import Session, defer
 
-from app.models import Chunk, Document
+from app.models import Chunk
 from .embeddings import get_embedding_model
 
 # Phrases signalling the query wants a count/enumeration across a whole
@@ -245,10 +245,10 @@ class HybridRetriever:
             Chunk,
             func.ts_rank(Chunk.content_tsv, tsquery).label('score')
         ).options(
-            # The 1536-dim vector is ~90% of a chunk row's bytes (7.9KB vs
-            # 0.7KB) and nothing downstream of retrieval reads it - ranking
-            # happens server-side. Leaving it in the select list dominated
-            # retrieval time.
+            # The embedding vector is the bulk of a chunk row's bytes and
+            # nothing downstream of retrieval reads it - ranking happens
+            # server-side. Leaving it in the select list dominated retrieval
+            # time.
             defer(Chunk.embedding)
         ).filter(
             Chunk.content_tsv.op('@@')(tsquery)

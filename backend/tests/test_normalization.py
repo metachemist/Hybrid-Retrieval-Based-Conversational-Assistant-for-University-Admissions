@@ -25,12 +25,6 @@ class TestRomanUrduNormalizer:
         # Should apply character mappings but not translate
         assert result is not None
     
-    def test_preserve_case(self):
-        """Test case preservation."""
-        text = "Admission Ke Liye"
-        result = self.normalizer.normalize_preserve(text)
-        assert result is not None
-    
     def test_empty_text(self):
         """Test empty text handling."""
         assert self.normalizer.normalize("") == ""
@@ -41,11 +35,6 @@ class TestRomanUrduNormalizer:
         text = "admission ke liye kya documents chahiye?"
         result = self.normalizer.normalize(text)
         assert result.endswith("?")
-    
-    def test_suggestions(self):
-        """Test word suggestion feature."""
-        suggestions = self.normalizer.get_suggestions("admisn")
-        assert isinstance(suggestions, list)
     
     def test_common_variations(self):
         """Test common Roman Urdu variations."""

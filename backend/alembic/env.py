@@ -14,7 +14,7 @@ import app.models  # noqa: F401 — registers all models so autogenerate sees th
 # Alembic Config object
 config = context.config
 
-# Override the ini URL with the runtime URL (handles SQLite ↔ Postgres auto-switch)
+# Use the runtime DATABASE_URL rather than the static value in alembic.ini
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Set up logging from alembic.ini
@@ -49,8 +49,6 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            # render_as_batch=True lets SQLite handle ALTER TABLE via table-copy
-            render_as_batch=True,
         )
         with context.begin_transaction():
             context.run_migrations()

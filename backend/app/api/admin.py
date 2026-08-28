@@ -7,11 +7,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, case, distinct
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from typing import List
 
 from ..core.database import get_db
 from ..core.security import require_admin
-from ..models import QueryLog, User, Document, Chunk
+from ..models import QueryLog, User
 
 router = APIRouter()
 

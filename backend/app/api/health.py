@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
 from pydantic import BaseModel
-from typing import Optional, Dict
 import time
 
 from ..core.database import get_db
@@ -54,8 +53,6 @@ async def health_check(db: Session = Depends(get_db)):
     - LLM provider availability
     - System statistics
     """
-    start_time = time.time()
-    
     # Check database
     try:
         db.execute(text("SELECT 1"))
@@ -100,7 +97,7 @@ async def database_health(db: Session = Depends(get_db)):
             documents_count=doc_count,
             chunks_count=chunk_count
         )
-    except Exception as e:
+    except Exception:
         return DatabaseHealth(
             status="disconnected",
             connection_time_ms=0,

@@ -97,9 +97,9 @@ export default function ArchitectureDiagram() {
           <Detail>
             RAG prompt builder
             <br />
-            provider chain: OpenAI,
+            Gemini (primary),
             <br />
-            Gemini, Claude, Ollama
+            OpenAI fallback
           </Detail>
         </Plate>
         <Plate tag="05 · ROMAN URDU" title="Language layer">

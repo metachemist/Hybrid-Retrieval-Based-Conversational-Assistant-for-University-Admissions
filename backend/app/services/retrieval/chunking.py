@@ -6,7 +6,7 @@ Implements hybrid chunking strategy:
 - Fixed-size fallback with overlap
 - Special handling for tables and lists
 """
-from typing import List, Dict, Optional
+from typing import List, Dict
 from dataclasses import dataclass
 import re
 
@@ -472,54 +472,3 @@ class DocumentChunker:
                 break
         
         return overlap_paragraphs if overlap_paragraphs else [paragraphs[-1]]
-    
-    def add_context_to_chunks(
-        self,
-        chunks: List[Chunk],
-        context: str,
-        max_length: int = 100
-    ) -> List[Chunk]:
-        """
-        Add contextual information to each chunk.
-        
-        Args:
-            chunks: List of chunks to modify
-            context: Context string to prepend
-            max_length: Maximum length of context to add
-            
-        Returns:
-            Modified list of chunks
-        """
-        context = context[:max_length].strip()
-        
-        for chunk in chunks:
-            if context:
-                chunk.content = f"{context}\n\n{chunk.content}"
-        
-        return chunks
-
-
-def chunk_document(
-    text: str,
-    section_header: str = "",
-    page_start: int = 0,
-    page_end: int = 0,
-    chunk_size: int = 512,
-    overlap: int = 50
-) -> List[Chunk]:
-    """
-    Convenience function to chunk a document.
-    
-    Args:
-        text: Text to chunk
-        section_header: Section header
-        page_start: Starting page
-        page_end: Ending page
-        chunk_size: Target chunk size
-        overlap: Overlap size
-        
-    Returns:
-        List of Chunk objects
-    """
-    chunker = DocumentChunker(chunk_size=chunk_size, overlap=overlap)
-    return chunker.chunk_text(text, section_header, page_start, page_end)

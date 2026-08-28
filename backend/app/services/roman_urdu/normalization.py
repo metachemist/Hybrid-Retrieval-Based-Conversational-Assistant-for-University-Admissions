@@ -7,8 +7,6 @@ Normalizes Roman Urdu text by:
 - Standardizing common words
 """
 import re
-from typing import Dict, List, Optional
-from difflib import SequenceMatcher
 
 
 class RomanUrduNormalizer:
@@ -127,14 +125,6 @@ class RomanUrduNormalizer:
         'proces': 'process',
     }
     
-    # Suffix patterns
-    SUFFIX_MAPPINGS = {
-        'iyat': 'ity',
-        'iyth': 'ity',
-        'tion': 'tion',
-        'sion': 'sion',
-    }
-    
     def __init__(self, use_translation: bool = False):
         """
         Initialize the normalizer.
@@ -176,47 +166,7 @@ class RomanUrduNormalizer:
         text = self._apply_word_mappings(text)
         
         return text
-    
-    def normalize_preserve(self, text: str) -> str:
-        """
-        Normalize while preserving original case where possible.
-        
-        Args:
-            text: Input text
-            
-        Returns:
-            Normalized text with original case preserved
-        """
-        if not text:
-            return text
-        
-        words = text.split()
-        normalized_words = []
-        
-        for word in words:
-            # Preserve punctuation
-            punctuation = ''
-            while word and not word[-1].isalnum():
-                punctuation = word[-1] + punctuation
-                word = word[:-1]
-            
-            if word:
-                # Check if original was capitalized
-                was_capitalized = word[0].isupper()
-                
-                # Normalize
-                normalized = self.normalize(word)
-                
-                # Restore capitalization
-                if was_capitalized and normalized:
-                    normalized = normalized.capitalize()
-                
-                normalized_words.append(normalized + punctuation)
-            else:
-                normalized_words.append(punctuation)
-        
-        return ' '.join(normalized_words)
-    
+
     def _apply_character_mappings(self, text: str) -> str:
         """Apply character-level mappings."""
         return self.char_pattern.sub(
@@ -255,46 +205,3 @@ class RomanUrduNormalizer:
                 normalized_words.append(word)
 
         return ''.join(normalized_words)
-    
-    def get_suggestions(self, word: str, top_n: int = 3) -> List[str]:
-        """
-        Get normalization suggestions for a word.
-        
-        Args:
-            word: Input word
-            top_n: Number of suggestions to return
-            
-        Returns:
-            List of suggested normalizations
-        """
-        word = word.lower()
-        suggestions = []
-        
-        # Check direct mapping
-        if word in self.WORD_MAPPINGS:
-            suggestions.append(self.WORD_MAPPINGS[word])
-        
-        # Find similar words using fuzzy matching
-        for original, normalized in self.WORD_MAPPINGS.items():
-            similarity = SequenceMatcher(None, word, original).ratio()
-            if similarity > 0.7:
-                suggestions.append((normalized, similarity))
-        
-        # Sort by similarity and return top N
-        if suggestions and isinstance(suggestions[0], tuple):
-            suggestions.sort(key=lambda x: x[1], reverse=True)
-            return [s[0] for s in suggestions[:top_n]]
-        
-        return suggestions[:top_n]
-
-
-# Singleton instance
-_normalizer = None
-
-
-def get_normalizer(use_translation: bool = False) -> RomanUrduNormalizer:
-    """Get or create the normalizer singleton."""
-    global _normalizer
-    if _normalizer is None or _normalizer.use_translation != use_translation:
-        _normalizer = RomanUrduNormalizer(use_translation=use_translation)
-    return _normalizer

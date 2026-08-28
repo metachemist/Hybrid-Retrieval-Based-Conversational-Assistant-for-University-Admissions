@@ -65,6 +65,7 @@ yarn-error.log*
 # Next.js
 .next/
 out/
+*.tsbuildinfo
 
 # Testing
 coverage/
@@ -73,9 +74,17 @@ coverage/
 .coverage
 htmlcov/
 
-# Data
-data/raw/*.pdf
-data/processed/*.txt
+# Source documents — the corpus is ingested into the database, not tracked here.
+FYP DOCUMENTS/
+data/raw/
+data/processed/
+data/archive/
+backend/data/
+!data/test-queries/
+
+# Stray screenshots / scratch images at the repo root
+/image.png
+/image copy.png
 
 # Model cache
 .cache/

@@ -2,7 +2,7 @@
 Language Detection Module
 
 Detects whether a query is in English, Roman Urdu, or code-mixed.
-Uses fasttext for initial detection with custom rules for Roman Urdu.
+Uses langdetect for a baseline reading, then custom Roman Urdu marker rules.
 """
 import re
 from typing import Tuple
@@ -24,7 +24,7 @@ class LanguageDetector:
     # Roman Urdu specific patterns
     ROMAN_URDU_PATTERNS = [
         r'\b(kya|kaise|kahan|kab|kyun|kaun)\b',  # Question words
-        r'\b(hai|tha|tha|hoga|hain)\b',  # Verb forms
+        r'\b(hai|tha|hoga|hain)\b',  # Verb forms
         r'\b(mera|teri|uska|hamara|unka)\b',  # Possessives
         r'\b(aur|lekin|par|ya|toh|phir)\b',  # Conjunctions
         r'\b(admission|fee|document|form|date|last)\b.*\b(chahiye|hoga|hai|tha)\b',  # Common patterns
@@ -132,29 +132,3 @@ class LanguageDetector:
                 hits += 1
 
         return min(hits / len(tokens), 1.0)
-    
-    def is_roman_urdu(self, text: str, threshold: float = 0.30) -> bool:
-        """
-        Check if text is Roman Urdu.
-        
-        Args:
-            text: Input text
-            threshold: Confidence threshold
-            
-        Returns:
-            True if Roman Urdu
-        """
-        lang, confidence = self.detect(text)
-        return lang in ('ur', 'mixed') and confidence >= threshold
-
-
-# Singleton instance
-_language_detector = None
-
-
-def get_language_detector() -> LanguageDetector:
-    """Get or create the language detector singleton."""
-    global _language_detector
-    if _language_detector is None:
-        _language_detector = LanguageDetector()
-    return _language_detector

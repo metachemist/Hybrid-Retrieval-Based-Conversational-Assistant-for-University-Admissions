@@ -5,7 +5,7 @@ Generates vector embeddings for semantic search via Google
 gemini-embedding-001 (output_dimensionality=768).
 
 Two task types are used, as recommended by Google:
-- RETRIEVAL_DOCUMENT  for chunk text stored in the index (encode / encode_documents)
+- RETRIEVAL_DOCUMENT  for chunk text stored in the index (encode)
 - RETRIEVAL_QUERY      for the user's question at search time (encode_query)
 
 Output dimensions below the native 3072 are returned un-normalised, so every
@@ -86,16 +86,9 @@ class EmbeddingModel:
             print(f"Embedded {len(texts)} texts")
         return embeddings
 
-    # Alias kept explicit so ingestion call sites read clearly.
-    encode_documents = encode
-
     def encode_query(self, text: str) -> np.ndarray:
         """Embed a single search query (RETRIEVAL_QUERY task)."""
         return self._embed([text], _QUERY_TASK)[0]
-
-    def get_dimension(self) -> int:
-        """Return the embedding dimension for the active provider."""
-        return settings.EMBEDDING_DIMENSION
 
 
 # Singleton
@@ -107,7 +100,3 @@ def get_embedding_model() -> EmbeddingModel:
     if _embedding_model is None:
         _embedding_model = EmbeddingModel()
     return _embedding_model
-
-
-def initialize_model():
-    get_embedding_model()

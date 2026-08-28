@@ -41,7 +41,6 @@ class ChatRequest(BaseModel):
     # ~100 full chunk bodies from Neon to discard 90% of them.
     top_k: Optional[int] = 10
     use_hybrid: Optional[bool] = True
-    stream: Optional[bool] = False
 
 
 class ChatResponse(BaseModel):
@@ -303,6 +302,7 @@ def chat(
         )
     except Exception as e:
         # Fallback: return retrieved chunks directly
+        logger.error(f"Generation failed, returning raw excerpts: {e}")
         response_text = "I found relevant information but couldn't generate a response. Here are the relevant excerpts:\n\n"
         for i, chunk in enumerate(ctx.chunks[:3], 1):
             response_text += f"{i}. {chunk.content[:200]}...\n\n"
@@ -500,29 +500,3 @@ async def chat_stream(
             log_db.close()
 
     return StreamingResponse(generate(), media_type="text/event-stream")
-
-
-@router.get("/chat/suggestions")
-async def get_suggestions(
-    limit: int = 5,
-    db: Session = Depends(get_db)
-):
-    """
-    Get suggested queries based on recent popular queries.
-    """
-    # Get recent queries from logs
-    recent = db.query(QueryLog).order_by(
-        QueryLog.created_at.desc()
-    ).limit(limit * 2).all()
-    
-    # Extract unique queries (simplified)
-    suggestions = []
-    seen = set()
-    for log in recent:
-        if log.query_text not in seen and len(log.query_text) < 100:
-            suggestions.append(log.query_text)
-            seen.add(log.query_text)
-        if len(suggestions) >= limit:
-            break
-    
-    return {"suggestions": suggestions}

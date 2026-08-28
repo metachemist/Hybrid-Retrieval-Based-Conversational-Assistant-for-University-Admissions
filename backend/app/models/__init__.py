@@ -4,13 +4,12 @@ Requires PostgreSQL with the pgvector extension.
 """
 import uuid
 from datetime import datetime
-from typing import Optional, List
 from sqlalchemy import (
     Column, String, Integer, DateTime, ForeignKey,
-    Text, Boolean, Float, event, Computed, Index
+    Text, Boolean, Computed, Index
 )
-from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from ..core.database import Base
 

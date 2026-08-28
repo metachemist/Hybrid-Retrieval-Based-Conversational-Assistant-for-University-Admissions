@@ -7,7 +7,7 @@ const SCRAMBLE_CHARS = '!<>-_\\/[]{}=+*^?01#'
 const SNIPPETS = [
   `async def retrieve(query: str):
     bm25 = keyword_search(query, k=20)
-    vec = embed(query, model="text-embedding-3")
+    vec = embed(query, model="gemini-embedding-001")
     hits = rrf_fuse(bm25, vec, k=60)
     return rank(hits)[:5]`,
   `const chunks = await hybridSearch({

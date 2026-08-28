@@ -23,16 +23,6 @@ export interface ChatRequest {
   query: string
   top_k?: number
   use_hybrid?: boolean
-  stream?: boolean
-}
-
-export interface ChatResponse {
-  response: string
-  citations: Citation[]
-  latency_ms: number
-  llm_provider: string
-  cache_hit: boolean
-  language: string
 }
 
 export interface Citation {
@@ -204,13 +194,6 @@ class ApiClient {
   // Chat
   // -------------------------------------------------------------------------
 
-  async chat(request: ChatRequest): Promise<ChatResponse> {
-    return this.request<ChatResponse>('/api/chat', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    })
-  }
-
   /**
    * Streaming chat over Server-Sent Events. Calls the handlers as events
    * arrive; resolves when the stream ends. Each SSE `data:` line is a JSON
@@ -282,10 +265,6 @@ class ApiClient {
       }
     }
     if (buffer.trim()) dispatch(buffer)
-  }
-
-  async getSuggestions(limit: number = 5): Promise<{ suggestions: string[] }> {
-    return this.request<{ suggestions: string[] }>(`/api/chat/suggestions?limit=${limit}`)
   }
 
   // -------------------------------------------------------------------------

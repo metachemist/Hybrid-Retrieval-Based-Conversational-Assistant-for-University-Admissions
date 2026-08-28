@@ -6,7 +6,6 @@ Supports:
 - Gemini (primary — free tier; also powers retrieval embeddings)
 - OpenAI GPT (optional fallback — only active when OPENAI_API_KEY is set)
 """
-import asyncio
 import time
 from typing import Optional, List, Dict, AsyncGenerator
 from abc import ABC, abstractmethod

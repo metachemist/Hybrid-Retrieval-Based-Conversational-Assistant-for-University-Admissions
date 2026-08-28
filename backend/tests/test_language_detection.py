@@ -66,8 +66,3 @@ class TestLanguageDetector:
         ]:
             lang, _ = self.detector.detect(q)
             assert lang == 'en', f"Failed for: {q}"
-
-    def test_is_roman_urdu(self):
-        """Test Roman Urdu boolean check."""
-        assert self.detector.is_roman_urdu("admission ke liye kya chahiye?")
-        assert not self.detector.is_roman_urdu("What is required for admission?")

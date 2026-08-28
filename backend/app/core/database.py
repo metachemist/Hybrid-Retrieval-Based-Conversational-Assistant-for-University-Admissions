@@ -35,6 +35,6 @@ def get_db():
 
 def init_db():
     """Initialize database tables."""
-    from ..models import Document, Chunk, QueryLog  # Import all models
+    from ..models import Document, Chunk, QueryLog  # noqa: F401 - registers tables for create_all
     Base.metadata.create_all(bind=engine)
     print("✓ Database initialized")

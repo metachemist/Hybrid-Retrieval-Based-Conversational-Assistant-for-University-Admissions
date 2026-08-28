@@ -3,7 +3,7 @@ RAG Prompt Builder
 
 Constructs prompts for the LLM with retrieved context and citation instructions.
 """
-from typing import List, Dict, Optional
+from typing import List, Dict
 from dataclasses import dataclass
 
 from app.models import Chunk
@@ -24,10 +24,6 @@ class Citation:
         if self.page_end and self.page_end != self.page_start:
             pages += f"-{self.page_end}"
         return f"[{self.document_title}: {self.section_header}, {pages}]"
-    
-    def marker(self) -> str:
-        """Get inline citation marker."""
-        return f"[{self.chunk_index}]"
 
 
 class RAGPromptBuilder:
@@ -40,7 +36,7 @@ class RAGPromptBuilder:
     - Language-aware response instructions
     - Hallucination prevention
     """
-    
+
     SYSTEM_PROMPT = """You are Rehnuma, the admission policy assistant for the University of Karachi.
 Your role is to help prospective students understand admission requirements, procedures, and policies.
 
@@ -73,15 +69,6 @@ IMPORTANT RULES:
 
 Remember: Your responses must be grounded in the provided documents."""
 
-    def __init__(self, max_context_tokens: int = 4000):
-        """
-        Initialize the prompt builder.
-        
-        Args:
-            max_context_tokens: Maximum tokens for context
-        """
-        self.max_context_tokens = max_context_tokens
-    
     def build(
         self,
         query: str,
@@ -91,13 +78,14 @@ Remember: Your responses must be grounded in the provided documents."""
     ) -> tuple[str, List[Citation]]:
         """
         Build a RAG prompt with context and citations.
-        
+
         Args:
             query: User query
-            chunks: Retrieved chunks
+            chunks: Retrieved chunks (already ranked; caller slices to a budget)
             documents: Map of chunk IDs to document titles
-            language: Language code ('en' or 'ur')
-            
+            language: Detected query language ('en', 'ur', 'mixed') — controls
+                which language the model is told to answer in
+
         Returns:
             Tuple of (prompt, citations)
         """
@@ -147,82 +135,6 @@ Remember to cite your sources using [1], [2], etc.
 """
         
         return prompt, citations
-    
-    def build_condensed(
-        self,
-        query: str,
-        chunks: List[Chunk],
-        documents: Dict[str, str],
-        max_chunks: int = 5,
-        language: str = "en"
-    ) -> tuple[str, List[Citation]]:
-        """
-        Build a condensed prompt with top chunks.
-
-        Args:
-            query: User query
-            chunks: Retrieved chunks (already ranked)
-            documents: Map of chunk IDs to document titles
-            max_chunks: Maximum number of chunks to include
-            language: Detected query language ('en', 'ur', 'mixed') — controls
-                which language the model is told to answer in
-
-        Returns:
-            Tuple of (prompt, citations)
-        """
-        # Take top chunks
-        selected_chunks = chunks[:max_chunks]
-        return self.build(query, selected_chunks, documents, language=language)
-    
-    def format_citations(self, citations: List[Citation]) -> str:
-        """Format citations for display."""
-        if not citations:
-            return ""
-        
-        formatted = []
-        for citation in citations:
-            formatted.append(f"{citation.marker()} {citation.format()}")
-        
-        return "\n".join(formatted)
-    
-    def extract_citation_markers(self, text: str) -> List[int]:
-        """
-        Extract citation markers from generated text.
-        
-        Args:
-            text: Generated response text
-            
-        Returns:
-            List of citation indices
-        """
-        import re
-        markers = re.findall(r'\[(\d+)\]', text)
-        return [int(m) for m in markers]
-    
-    def validate_citations(
-        self,
-        response: str,
-        citations: List[Citation]
-    ) -> Dict:
-        """
-        Validate that response includes proper citations.
-        
-        Args:
-            response: Generated response
-            citations: Available citations
-            
-        Returns:
-            Validation results
-        """
-        markers = self.extract_citation_markers(response)
-        
-        return {
-            "has_citations": len(markers) > 0,
-            "citation_count": len(markers),
-            "valid_citations": [m for m in markers if 1 <= m <= len(citations)],
-            "invalid_citations": [m for m in markers if m < 1 or m > len(citations)],
-            "all_valid": all(1 <= m <= len(citations) for m in markers)
-        }
 
 
 def create_rag_prompt(
@@ -233,20 +145,20 @@ def create_rag_prompt(
     language: str = "en"
 ) -> tuple[str, str, List[Citation]]:
     """
-    Convenience function to create a complete RAG prompt.
+    Build a complete RAG prompt: system prompt, user prompt and citations.
 
     Args:
         query: User query
-        chunks: Retrieved chunks
+        chunks: Retrieved chunks (already ranked)
         documents: Map of chunk IDs to document titles
-        max_chunks: Maximum chunks to include
+        max_chunks: Keep only the top N chunks
         language: Detected query language ('en', 'ur', 'mixed')
 
     Returns:
         Tuple of (system_prompt, user_prompt, citations)
     """
     builder = RAGPromptBuilder()
-    user_prompt, citations = builder.build_condensed(
-        query, chunks, documents, max_chunks, language=language
+    user_prompt, citations = builder.build(
+        query, chunks[:max_chunks], documents, language=language
     )
     return RAGPromptBuilder.SYSTEM_PROMPT, user_prompt, citations
