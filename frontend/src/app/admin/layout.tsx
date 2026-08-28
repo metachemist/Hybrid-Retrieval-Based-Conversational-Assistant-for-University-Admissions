@@ -28,7 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (isLoading || !user || user.role !== 'admin') return null
 
-  const initials = user.email.slice(0, 2).toUpperCase()
+  const initials = (user.email || 'AD').slice(0, 2).toUpperCase()
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
@@ -94,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {initials}
             </span>
             <p className="truncate font-mono text-[11px] tracking-tighter2 text-muted">
-              {user.email}
+              {user.email || 'Signed in'}
             </p>
           </div>
         </div>

@@ -2,12 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import ChatMessage from '@/components/ChatMessage'
 import ChatInput from '@/components/ChatInput'
 import TypingIndicator from '@/components/TypingIndicator'
 import GenerativeGrid, { AMBIENT_FIELD } from '@/components/GenerativeGrid'
-import { GraduationCap, LayoutDashboard, LogOut, ArrowUpRight } from 'lucide-react'
+import { GraduationCap, LayoutDashboard, LogOut, LogIn, ArrowUpRight } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 
@@ -43,31 +42,17 @@ const NAV_ACTION =
   'text-muted transition-colors hover:bg-neutral-100 hover:text-neutral-900'
 
 export default function ChatPage() {
+  // Chat is public — no sign-in required. Auth only surfaces the admin
+  // controls for a signed-in admin.
   const { user, logout, isLoading: authLoading } = useAuth()
-  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const loggingOutRef = useRef(false)
-
-  useEffect(() => {
-    if (!authLoading && !user && !loggingOutRef.current) {
-      router.replace('/login')
-    }
-  }, [user, authLoading, router])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
-  if (authLoading || !user) {
-    return (
-      <main className="flex h-screen items-center justify-center bg-neutral-50">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900" />
-      </main>
-    )
-  }
 
   const sendMessage = async (query: string) => {
     if (!query.trim() || isLoading) return
@@ -137,24 +122,27 @@ export default function ChatPage() {
           </Link>
 
           <div className="flex items-center gap-1">
-            {user.role === 'admin' && (
+            {!authLoading && user?.role === 'admin' && (
               <Link href="/admin" className={NAV_ACTION}>
                 <LayoutDashboard className="h-3.5 w-3.5" />
                 <span className="max-sm:hidden">Dashboard</span>
               </Link>
             )}
-            <button
-              onClick={() => {
-                loggingOutRef.current = true
-                logout()
-                router.push('/')
-              }}
-              title={`Signed in as ${user.email}`}
-              className={NAV_ACTION}
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="max-sm:hidden">Sign out</span>
-            </button>
+            {!authLoading && user ? (
+              <button
+                onClick={logout}
+                title={user.email ? `Signed in as ${user.email}` : 'Sign out'}
+                className={NAV_ACTION}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="max-sm:hidden">Sign out</span>
+              </button>
+            ) : (
+              <Link href="/login" className={NAV_ACTION} title="Admin sign in">
+                <LogIn className="h-3.5 w-3.5" />
+                <span className="max-sm:hidden">Admin</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>

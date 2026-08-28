@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace('/chat')
+      router.replace(user.role === 'admin' ? '/admin' : '/chat')
     }
   }, [user, isLoading, router])
 
@@ -25,8 +25,8 @@ export default function LoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      await login(email, password)
-      router.replace('/chat')
+      const profile = await login(email, password)
+      router.replace(profile.role === 'admin' ? '/admin' : '/chat')
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
@@ -82,8 +82,14 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <h2 className="display-lg text-3xl text-neutral-900 mb-1">Welcome back</h2>
-          <p className="text-sm text-neutral-500 mb-8">Sign in to your account to continue.</p>
+          <h2 className="display-lg text-3xl text-neutral-900 mb-1">Admin sign in</h2>
+          <p className="text-sm text-neutral-500 mb-8">
+            Staff only. The chatbot itself needs no account &mdash;{' '}
+            <Link href="/chat" className="text-primary-600 hover:text-primary-700 font-medium">
+              open Rehnuma
+            </Link>
+            .
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -156,13 +162,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-neutral-100 space-y-2 text-sm text-center">
-            <p className="text-neutral-500">
-              Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
-                Create one
-              </Link>
-            </p>
+          <div className="mt-6 pt-6 border-t border-neutral-100 text-sm text-center">
             <Link href="/" className="flex items-center justify-center gap-1 text-neutral-400 hover:text-neutral-600 transition-colors">
               <ArrowRight className="w-3.5 h-3.5 rotate-180" />
               Back to home

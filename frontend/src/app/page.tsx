@@ -203,11 +203,11 @@ export default function LandingPage() {
               </Link>
             </nav>
             <Link
-              href="/login"
+              href="/chat"
               className="rounded bg-primary-300 px-4 py-1.5 text-[13px] font-medium text-neutral-900
                          transition-colors hover:bg-primary-200"
             >
-              Sign in
+              Launch Rehnuma
             </Link>
           </div>
         </header>
@@ -246,11 +246,8 @@ export default function LandingPage() {
 
               <Reveal delay={220}>
                 <div className="mt-11 flex flex-col items-stretch gap-3 sm:flex-row sm:items-start">
-                  <SlideButton href="/login" icon={<ArrowRight className="h-4 w-4" />}>
+                  <SlideButton href="/chat" icon={<ArrowRight className="h-4 w-4" />}>
                     Take me to Rehnuma
-                  </SlideButton>
-                  <SlideButton href="/register" variant="outline">
-                    Create an account
                   </SlideButton>
                 </div>
               </Reveal>
@@ -379,7 +376,7 @@ export default function LandingPage() {
               to where it came from.
             </p>
             <div className="mt-9">
-              <SlideButton href="/login" icon={<ArrowRight className="h-4 w-4" />}>
+              <SlideButton href="/chat" icon={<ArrowRight className="h-4 w-4" />}>
                 Ask a question
               </SlideButton>
             </div>
@@ -613,11 +610,11 @@ export default function LandingPage() {
               Ready when you are.
             </h2>
             <p className="mx-auto mt-8 max-w-md text-[17px] leading-[1.7] text-neutral-400">
-              Sign in or create a free account to start asking questions about admissions.
+              No sign-up needed. Open Rehnuma and start asking questions about admissions.
             </p>
             <div className="mt-11 flex justify-center">
-              <SlideButton href="/login" icon={<ArrowRight className="h-4 w-4" />}>
-                Take me to the Rehnuma
+              <SlideButton href="/chat" icon={<ArrowRight className="h-4 w-4" />}>
+                Take me to Rehnuma
               </SlideButton>
             </div>
           </Reveal>

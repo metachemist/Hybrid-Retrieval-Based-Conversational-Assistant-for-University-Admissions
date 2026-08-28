@@ -57,12 +57,6 @@ export interface AuthResponse {
   role: string
 }
 
-export interface UserProfile {
-  id: string
-  email: string
-  role: string
-}
-
 export interface AnalyticsOverview {
   days: number
   total_queries: number
@@ -170,10 +164,6 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ email, password, admin_key: adminKey || undefined }),
     })
-  }
-
-  async getMe(): Promise<UserProfile> {
-    return this.request<UserProfile>('/api/auth/me')
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {

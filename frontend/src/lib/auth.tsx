@@ -20,59 +20,63 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+/**
+ * Decode the JWT payload (sub, email, role, exp) with no signature check —
+ * the server re-verifies on every authenticated request. Returns null if the
+ * token is malformed or expired. This is what lets sign-in skip a follow-up
+ * /auth/me round trip: the token already carries everything the UI needs.
+ */
+function userFromToken(token: string): AuthUser | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (!payload.exp || payload.exp * 1000 <= Date.now()) return null
+    return {
+      id: payload.sub,
+      email: payload.email ?? '',
+      role: payload.role === 'admin' ? 'admin' : 'user',
+    }
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Restore session from localStorage on mount
+  // Restore the session from localStorage on mount — purely local, no network.
   useEffect(() => {
     const stored = localStorage.getItem('auth_token')
-    if (stored) {
-      try {
-        // Decode JWT payload (no signature verification needed client-side)
-        const payload = JSON.parse(atob(stored.split('.')[1]))
-        if (payload.exp * 1000 > Date.now()) {
-          api.setToken(stored)
-          setToken(stored)
-          // Fetch current user profile
-          api.getMe().then(profile => {
-            setUser(profile as AuthUser)
-          }).catch(() => {
-            localStorage.removeItem('auth_token')
-            api.clearToken()
-          }).finally(() => setIsLoading(false))
-        } else {
-          localStorage.removeItem('auth_token')
-          setIsLoading(false)
-        }
-      } catch {
-        localStorage.removeItem('auth_token')
-        setIsLoading(false)
-      }
-    } else {
-      setIsLoading(false)
+    const restored = stored ? userFromToken(stored) : null
+    if (stored && restored) {
+      api.setToken(stored)
+      setToken(stored)
+      setUser(restored)
+    } else if (stored) {
+      localStorage.removeItem('auth_token')
     }
+    setIsLoading(false)
   }, [])
 
-  const login = async (email: string, password: string): Promise<AuthUser> => {
-    const data = await api.login(email, password)
-    localStorage.setItem('auth_token', data.access_token)
-    api.setToken(data.access_token)
-    setToken(data.access_token)
-    const profile = await api.getMe() as AuthUser
+  const persist = (accessToken: string): AuthUser => {
+    const profile = userFromToken(accessToken)
+    if (!profile) throw new Error('Received an invalid token')
+    localStorage.setItem('auth_token', accessToken)
+    api.setToken(accessToken)
+    setToken(accessToken)
     setUser(profile)
     return profile
   }
 
+  const login = async (email: string, password: string): Promise<AuthUser> => {
+    const data = await api.login(email, password)
+    return persist(data.access_token)
+  }
+
   const register = async (email: string, password: string, adminKey?: string): Promise<AuthUser> => {
     const data = await api.register(email, password, adminKey)
-    localStorage.setItem('auth_token', data.access_token)
-    api.setToken(data.access_token)
-    setToken(data.access_token)
-    const profile = await api.getMe() as AuthUser
-    setUser(profile)
-    return profile
+    return persist(data.access_token)
   }
 
   const logout = () => {

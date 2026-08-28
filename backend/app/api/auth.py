@@ -117,7 +117,7 @@ def register(request: Request, payload: RegisterRequest, db: Session = Depends(g
     db.commit()
     db.refresh(user)
 
-    token = create_access_token({"sub": user.id, "role": user.role})
+    token = create_access_token({"sub": user.id, "email": user.email, "role": user.role})
     return AuthResponse(access_token=token, role=user.role)
 
 
@@ -133,7 +133,7 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
             detail="Invalid email or password",
         )
 
-    token = create_access_token({"sub": user.id, "role": user.role})
+    token = create_access_token({"sub": user.id, "email": user.email, "role": user.role})
     return AuthResponse(access_token=token, role=user.role)
 
 

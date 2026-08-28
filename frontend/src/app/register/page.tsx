@@ -42,7 +42,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace('/chat')
+      router.replace(user.role === 'admin' ? '/admin' : '/chat')
     }
   }, [user, isLoading, router])
 
@@ -55,8 +55,8 @@ export default function RegisterPage() {
 
     setSubmitting(true)
     try {
-      await register(email, password, adminKey || undefined)
-      router.replace('/chat')
+      const profile = await register(email, password, adminKey || undefined)
+      router.replace(profile.role === 'admin' ? '/admin' : '/chat')
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
