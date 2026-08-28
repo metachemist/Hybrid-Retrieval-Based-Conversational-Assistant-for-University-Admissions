@@ -128,22 +128,22 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
             <KpiCard
               label="Total queries"
-              value={overview?.total_queries?.toLocaleString() ?? '—'}
+              value={overview?.total_queries?.toLocaleString() ?? '--'}
               sub={`Last ${days} days`}
             />
             <KpiCard
               label="Avg response time"
-              value={overview ? formatLatency(overview.avg_latency_ms) : '—'}
+              value={overview ? formatLatency(overview.avg_latency_ms) : '--'}
               sub="End-to-end latency"
             />
             <KpiCard
               label="Cache hit rate"
-              value={overview ? `${overview.cache_hit_rate_pct.toFixed(1)}%` : '—'}
+              value={overview ? `${overview.cache_hit_rate_pct.toFixed(1)}%` : '--'}
               sub="Responses from cache"
             />
             <KpiCard
               label="Success rate"
-              value={overview ? `${overview.success_rate_pct.toFixed(1)}%` : '—'}
+              value={overview ? `${overview.success_rate_pct.toFixed(1)}%` : '--'}
               sub="Answered from documents"
             />
           </div>

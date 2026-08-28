@@ -124,7 +124,7 @@ export default function ChatPage() {
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-white">
-      {/* ══ Nav rail — squared, matching the landing header ══ */}
+      {/* ══ Nav rail - squared, matching the landing header ══ */}
       <header className="flex-shrink-0 border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">

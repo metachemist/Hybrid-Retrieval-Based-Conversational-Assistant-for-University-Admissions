@@ -8,6 +8,6 @@
  * number so it is never ambiguous.
  */
 export function formatLatency(ms: number): string {
-  if (!Number.isFinite(ms)) return '—'
+  if (!Number.isFinite(ms)) return '--'
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`
 }

@@ -69,7 +69,7 @@ const STEPS = [
   },
 ]
 
-/** Thin frame with corner "handles" — the reference's selection-marquee motif. */
+/** Thin frame with corner "handles" - the reference's selection-marquee motif. */
 function CornerFrame({
   children,
   className = '',
@@ -316,12 +316,12 @@ export default function LandingPage() {
                   Even phoppo can get it wrong.
                 </h2>
                 <p className="mt-8 max-w-[34rem] text-[17px] leading-[1.7] text-neutral-400">
-                  Every family has one — the mamu, phoppo or chacha who&apos;s &quot;been through
+                  Every family has one: the mamu, phoppo or chacha who&apos;s &quot;been through
                   this&quot; and always has an answer, whether or not it&apos;s still true.
                 </p>
                 <p className="mt-4 max-w-[34rem] text-[17px] leading-[1.7] text-neutral-400">
                   The real one is sitting in the prospectus the whole time. It&apos;s just long,
-                  scattered, and hard to search — so the question passes through four or five
+                  scattered, and hard to search, so the question passes through four or five
                   people before it&apos;s answered, and by then it&apos;s often wrong.
                 </p>
               </Reveal>
@@ -386,7 +386,7 @@ export default function LandingPage() {
           </Reveal>
         </div>
 
-        {/* Stat row — oversized figures, mono labels */}
+        {/* Stat row - oversized figures, mono labels */}
         <div className="mt-28 grid grid-cols-2 gap-x-8 gap-y-14 sm:mt-36 lg:grid-cols-4">
           {STATS.map(({ value, label }, i) => (
             <Reveal key={label} delay={i * 90}>

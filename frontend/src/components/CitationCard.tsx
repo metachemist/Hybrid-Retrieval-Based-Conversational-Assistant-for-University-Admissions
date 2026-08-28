@@ -19,7 +19,7 @@ export default function CitationCard({ citation }: CitationCardProps) {
     citation.page_start > 0
       ? `p.${citation.page_start}${
           citation.page_end && citation.page_end !== citation.page_start
-            ? `–${citation.page_end}`
+            ? `-${citation.page_end}`
             : ''
         }`
       : null
