@@ -49,6 +49,15 @@ class Settings(BaseSettings):
     # Gemini model id for the primary generation provider. Kept in env because
     # Google rotates these faster than we redeploy; set it to whatever is current.
     GEMINI_MODEL: str = "gemini-3.6-flash"
+    # Secondary Gemini model, tried only after the primary GEMINI_MODEL has
+    # errored or returned nothing on a request. It sits in a separate quota
+    # bucket and behind its own circuit breaker, so a blip on the primary model
+    # no longer takes generation fully offline (OpenAI is usually not
+    # configured). Set to "" to disable; keep it on a currently available model.
+    GEMINI_FALLBACK_MODEL: str = "gemini-2.0-flash"
+    # Per-call retry budget for a single Gemini model on transient failures
+    # (429 / 5xx / network blip). 1 disables retries.
+    GEMINI_MAX_ATTEMPTS: int = 3
 
     # Where uploaded source PDFs are written. Relative paths resolve against the
     # process working directory. NOTE: on an ephemeral filesystem (e.g. Render's

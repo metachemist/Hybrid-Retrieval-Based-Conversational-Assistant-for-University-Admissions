@@ -153,6 +153,22 @@ def _build_rag_context(query: str, db: Session, chat_request: "ChatRequest") -> 
     )
 
 
+def _excerpt_fallback(chunks: List) -> str:
+    """Answer text assembled straight from the retrieved chunks, for when
+    generation fails but retrieval succeeded. Shared by /chat and /chat/stream
+    so the degraded answer reads the same on both paths."""
+    lines = [
+        "I found relevant information but couldn't generate a full answer just "
+        "now. Here are the most relevant passages from the admission documents:\n",
+    ]
+    for i, chunk in enumerate(chunks[:3], 1):
+        body = chunk.content.strip()
+        if len(body) > 300:
+            body = body[:300].rstrip() + "..."
+        lines.append(f"{i}. {body}\n")
+    return "\n".join(lines)
+
+
 def _format_citations(citations: List, chunks: List) -> List[Dict]:
     """Attach a content preview to each citation the prompt builder produced."""
     out = []
@@ -303,9 +319,7 @@ def chat(
     except Exception as e:
         # Fallback: return retrieved chunks directly
         logger.error(f"Generation failed, returning raw excerpts: {e}")
-        response_text = "I found relevant information but couldn't generate a response. Here are the relevant excerpts:\n\n"
-        for i, chunk in enumerate(ctx.chunks[:3], 1):
-            response_text += f"{i}. {chunk.content[:200]}...\n\n"
+        response_text = _excerpt_fallback(ctx.chunks)
         provider_name = "fallback"
     
     # Step 7: Format citations
@@ -433,6 +447,7 @@ async def chat_stream(
         llm_provider = get_llm_provider()
         provider_name = llm_provider.get_current_provider()
         parts = []
+        degraded_text = ""
 
         yield event({
             "type": "meta",
@@ -454,11 +469,21 @@ async def chat_stream(
             # The provider's own error text is not shown to the user - it can
             # carry request ids and key fragments.
             logger.error(f"Streaming generation failed: {e}")
-            provider_name = "error"
-            yield event({
-                "type": "error",
-                "message": "The response could not be completed. Please try again.",
-            })
+            if parts:
+                # Text already reached the client - it cannot be retracted or
+                # cleanly resumed against another provider. Surface the break.
+                provider_name = "error"
+                yield event({
+                    "type": "error",
+                    "message": "The response was cut off. Please try again.",
+                })
+            else:
+                # Nothing streamed yet and retrieval did return chunks: answer
+                # straight from the retrieved excerpts rather than failing
+                # outright. Mirrors the non-streaming /chat fallback.
+                provider_name = "fallback"
+                degraded_text = _excerpt_fallback(ctx.chunks)
+                yield event({"type": "token", "text": degraded_text})
 
         latency_ms = int((time.time() - start_time) * 1000)
         yield event({
@@ -467,7 +492,7 @@ async def chat_stream(
             "llm_provider": provider_name,
         })
 
-        answer = "".join(parts)
+        answer = "".join(parts) or degraded_text
 
         # Cache only a complete, model-generated answer.
         if answer and provider_name not in ("none", "fallback", "error"):
