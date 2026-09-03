@@ -626,7 +626,15 @@ export default function LandingPage() {
                        font-mono text-[12px] tracking-tighter2 text-muted sm:flex-row sm:items-center sm:px-10"
           >
             <p>© {new Date().getFullYear()} Rehnuma · University of Karachi</p>
-            <p>Sourced from official documents · Always verify with the admissions office</p>
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-6">
+              <p>Sourced from official documents · Always verify with the admissions office</p>
+              <Link
+                href="/login"
+                className="whitespace-nowrap text-muted transition-colors hover:text-white"
+              >
+                Admin sign in →
+              </Link>
+            </div>
           </div>
         </footer>
       </div>

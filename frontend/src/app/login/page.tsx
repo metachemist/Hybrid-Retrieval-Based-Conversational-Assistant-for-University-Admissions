@@ -14,9 +14,11 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Everyone lands on the chatbot after signing in. An admin then reaches the
+  // dashboard via the Dashboard button that only shows for them in the chat header.
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace(user.role === 'admin' ? '/admin' : '/chat')
+      router.replace('/chat')
     }
   }, [user, isLoading, router])
 
@@ -25,8 +27,8 @@ export default function LoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      const profile = await login(email, password)
-      router.replace(profile.role === 'admin' ? '/admin' : '/chat')
+      await login(email, password)
+      router.replace('/chat')
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {

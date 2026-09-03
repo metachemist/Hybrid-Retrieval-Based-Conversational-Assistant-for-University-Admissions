@@ -6,7 +6,7 @@ import ChatMessage from '@/components/ChatMessage'
 import ChatInput from '@/components/ChatInput'
 import TypingIndicator from '@/components/TypingIndicator'
 import GenerativeGrid, { AMBIENT_FIELD } from '@/components/GenerativeGrid'
-import { GraduationCap, LayoutDashboard, LogOut, LogIn, ArrowUpRight } from 'lucide-react'
+import { GraduationCap, LayoutDashboard, LogOut, ArrowUpRight } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 
@@ -121,6 +121,9 @@ export default function ChatPage() {
             </span>
           </Link>
 
+          {/* Auth controls are admin-only. A normal visitor uses the chatbot
+              anonymously and sees nothing here — the sign-in entry point lives
+              in the landing page footer. */}
           <div className="flex items-center gap-1">
             {!authLoading && user?.role === 'admin' && (
               <Link href="/admin" className={NAV_ACTION}>
@@ -128,7 +131,7 @@ export default function ChatPage() {
                 <span className="max-sm:hidden">Dashboard</span>
               </Link>
             )}
-            {!authLoading && user ? (
+            {!authLoading && user && (
               <button
                 onClick={logout}
                 title={user.email ? `Signed in as ${user.email}` : 'Sign out'}
@@ -137,11 +140,6 @@ export default function ChatPage() {
                 <LogOut className="h-3.5 w-3.5" />
                 <span className="max-sm:hidden">Sign out</span>
               </button>
-            ) : (
-              <Link href="/login" className={NAV_ACTION} title="Admin sign in">
-                <LogIn className="h-3.5 w-3.5" />
-                <span className="max-sm:hidden">Admin</span>
-              </Link>
             )}
           </div>
         </div>
